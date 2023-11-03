@@ -22,12 +22,13 @@ type TDistroInfo = {
 }
 
 export class PrismaEngine {
-  private schemaEnginePath = path.join('node_modules', '@prisma', 'engines')
-  private queryEnginePath = path.join('node_modules', '.prisma', 'client')
   public qePath: string
   public sePath: string
   public platform: string
   public binaryTarget: string
+  public backPath: string = path.join(__dirname, '..', '..', '..')
+  private schemaEnginePath = path.join(this.backPath, '@prisma', 'engines')
+  private queryEnginePath = path.join(this.backPath, '.prisma', 'client')
 
   constructor() {
     this.getPlatformData()
