@@ -38,7 +38,11 @@ export class PrismaConstants extends PrismaEngine {
       if (fs.lstatSync(folder).isDirectory()) {
         const inside = fs.readdirSync(path.join(initialPath, item))
         if (inside.includes('prisma')) {
-          if (fs.lstatSync(path.join(folder, 'prisma')).isDirectory()) return inside
+          if (
+            fs.lstatSync(path.join(folder, 'prisma')).isDirectory() &&
+            fs.existsSync(path.join(folder, 'prisma', 'schema.prisma'))
+          )
+            return inside
         }
       }
     })
