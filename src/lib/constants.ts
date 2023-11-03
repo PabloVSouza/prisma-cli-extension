@@ -15,7 +15,10 @@ export class PrismaConstants extends PrismaEngine {
 
     this.setBinaryTargets(this.platform)
 
-    this.prismaRoot = this.getPrismaLocation()
+    this.prismaRoot =
+      this.getPrismaLocation('node_modules') ??
+      this.getPrismaLocation(path.join('node_modules', '..', '..')) ??
+      'Prisma not Found!'
 
     this.prismaPath = path.join('node_modules', 'prisma', 'build', 'index.js')
 
@@ -26,19 +29,22 @@ export class PrismaConstants extends PrismaEngine {
     process.env.PRISMA_CLI_BINARY_TARGETS = platform
   }
 
-  private getPrismaLocation = () => {
-    const dirList = fs.readdirSync('node_modules')
+  private getPrismaLocation = (initialPath: string): string | undefined => {
+    const dirList = fs.readdirSync(initialPath)
+
+    console.log({ dirList })
     const prismaDir = dirList.filter((item) => {
-      const folder = path.join('node_modules', item)
+      const folder = path.join(initialPath, item)
 
       if (fs.lstatSync(folder).isDirectory()) {
-        const inside = fs.readdirSync(path.join('node_modules', item))
+        const inside = fs.readdirSync(path.join(initialPath, item))
         if (inside.includes('prisma')) {
           if (fs.lstatSync(path.join(folder, 'prisma')).isDirectory()) return inside
         }
       }
     })
-    if (prismaDir.length) return path.join('node_modules', prismaDir[0])
-    return 'Prisma schema not found'
+
+    console.log({ initialPath, prismaDir })
+    if (prismaDir.length) return path.join(initialPath, prismaDir[0])
   }
 }
