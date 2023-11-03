@@ -16,7 +16,7 @@ export class PrismaInitializer extends PrismaMigration {
           url: this.dbUrl
         }
       },
-      //@ts-nocheck
+      //@ts-ignore
       __internal: {
         engine: {
           binaryPath: this.qePath
