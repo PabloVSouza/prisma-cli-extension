@@ -15,7 +15,7 @@ export class PrismaConstants extends PrismaEngine {
 
     this.setBinaryTargets(this.platform)
 
-    const backPath = path.join(__dirname, '..', '..', '..', 'node_modules')
+    const backPath = path.join(__dirname, '..', '..', 'node_modules')
 
     console.log(backPath)
 
