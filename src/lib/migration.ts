@@ -1,6 +1,6 @@
 import { fork } from 'child_process'
 import { PrismaConstants } from './constants'
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from 'node_modules/@prisma/client'
 
 type Migration = {
   id: string

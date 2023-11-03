@@ -13,7 +13,6 @@
     "postinstall": "yarn build"
   },
   "dependencies": {
-    "@prisma/client": "5.5.2",
     "@types/node": "^20.8.10",
     "copyfiles": "^2.4.1",
     "express": "^4.18.2",
