@@ -15,9 +15,11 @@ export class PrismaConstants extends PrismaEngine {
 
     this.setBinaryTargets(this.platform)
 
+    const backPath = path.join(__dirname, '..', '..', '..', 'node_modules')
+
     this.prismaRoot =
-      this.getPrismaLocation(path.join(__dirname, 'node_modules')) ??
-      this.getPrismaLocation(path.join(__dirname, 'node_modules', '..', '..')) ??
+      this.getPrismaLocation(path.join(backPath)) ??
+      this.getPrismaLocation(path.join(backPath, '..', '..')) ??
       'Prisma not Found!'
 
     this.prismaPath = path.join('node_modules', 'prisma', 'build', 'index.js')
