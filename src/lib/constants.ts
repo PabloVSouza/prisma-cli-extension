@@ -24,7 +24,7 @@ export class PrismaConstants extends PrismaEngine {
       this.getPrismaLocation(path.join(backPath, '..', '..')) ??
       'Prisma not Found!'
 
-    this.prismaPath = path.join(this.prismaRoot, 'prisma', 'build', 'index.js')
+    this.prismaPath = path.join(backPath, 'prisma', 'build', 'index.js')
 
     this.schemaPath = path.join(this.prismaRoot, 'prisma', 'schema.prisma')
   }
