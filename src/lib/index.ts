@@ -1,3 +1,4 @@
+//@ts-ignore
 import { PrismaClient } from '../../../../node_modules/@prisma/client'
 import { PrismaMigration } from './migration'
 

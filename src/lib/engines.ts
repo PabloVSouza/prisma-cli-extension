@@ -23,8 +23,10 @@ type TDistroInfo = {
 }
 
 export class PrismaEngine {
-  private schemaEnginePath = path.join('node_modules', '@prisma', 'engines')
-  private queryEnginePath = path.join('node_modules', '.prisma', 'client')
+  private parentRoot = path.join('..', '..', '..', '..')
+
+  private schemaEnginePath = path.join(this.parentRoot, 'node_modules', '@prisma', 'engines')
+  private queryEnginePath = path.join(this.parentRoot, 'node_modules', '.prisma', 'client')
   public qePath: string
   public sePath: string
   public platform: string

@@ -1,6 +1,7 @@
+//@ts-ignore
+import { PrismaClient } from '../../../../node_modules/@prisma/client'
 import { fork } from 'child_process'
 import { PrismaConstants } from './constants'
-import { PrismaClient } from '../../../../node_modules/@prisma/client'
 
 type Migration = {
   id: string
@@ -41,8 +42,6 @@ export class PrismaMigration extends PrismaConstants {
     dbUrl: string
   }): Promise<number | void> => {
     const { prismaPath } = this
-
-    console.log(prismaPath)
 
     try {
       const exitCode = await new Promise((resolve) => {

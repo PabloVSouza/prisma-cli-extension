@@ -14,9 +14,11 @@ export class PrismaConstants extends PrismaEngine {
 
     this.setBinaryTargets(this.platform)
 
-    this.prismaPath = path.join('node_modules', 'prisma', 'build', 'index.js')
+    const parentRoot = path.join('..', '..', '..', '..')
 
-    this.schemaPath = path.join('prisma', 'schema.prisma')
+    this.prismaPath = path.join(parentRoot, 'node_modules', 'prisma', 'build', 'index.js')
+
+    this.schemaPath = path.join(parentRoot, 'prisma', 'schema.prisma')
 
     this.latestMigration = '20231029180851_menu'
   }
