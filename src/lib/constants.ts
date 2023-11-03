@@ -32,7 +32,6 @@ export class PrismaConstants extends PrismaEngine {
   private getPrismaLocation = (initialPath: string): string | undefined => {
     const dirList = fs.readdirSync(initialPath)
 
-    console.log({ dirList })
     const prismaDir = dirList.filter((item) => {
       const folder = path.join(initialPath, item)
 
@@ -44,7 +43,6 @@ export class PrismaConstants extends PrismaEngine {
       }
     })
 
-    console.log({ initialPath, prismaDir })
     if (prismaDir.length) return path.join(initialPath, prismaDir[0])
   }
 }
