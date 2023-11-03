@@ -2,7 +2,6 @@ import path from 'path'
 import fs from 'fs'
 import distroNameTranslations from './distro-name-translations'
 import sslVersions from './ssl-versions'
-import { getRootPathSync } from 'get-root-path'
 
 type TEngine = {
   [key: string]: {
@@ -23,10 +22,8 @@ type TDistroInfo = {
 }
 
 export class PrismaEngine {
-  private parentRoot = path.join('..', '..', '..', '..')
-
-  private schemaEnginePath = path.join(this.parentRoot, 'node_modules', '@prisma', 'engines')
-  private queryEnginePath = path.join(this.parentRoot, 'node_modules', '.prisma', 'client')
+  private schemaEnginePath = path.join('node_modules', '@prisma', 'engines')
+  private queryEnginePath = path.join('node_modules', '.prisma', 'client')
   public qePath: string
   public sePath: string
   public platform: string
@@ -41,10 +38,9 @@ export class PrismaEngine {
     const arch = process.arch
     const distro = this.platform === 'linux' ? this.getDistro() : undefined
     const fileName = this.getFileName(this.platform, arch, distro?.prismaName, distro?.ssl)
-    const rootPath = getRootPathSync()
 
-    this.qePath = path.join(rootPath, this.queryEnginePath, fileName.queryEngine)
-    this.sePath = path.join(rootPath, this.schemaEnginePath, fileName.schemaEngine)
+    this.qePath = path.join(this.queryEnginePath, fileName.queryEngine)
+    this.sePath = path.join(this.schemaEnginePath, fileName.schemaEngine)
 
     this.binaryTarget = this.getBinaryTarget(this.platform)
   }
