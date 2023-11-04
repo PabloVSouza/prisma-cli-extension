@@ -12,13 +12,17 @@ The solutions on this package where inspired (but not the same) by this excelent
 
 ## Usage
 
-As this package is an extension to Prisma, you need first to do all the usual Prisma initial setup. First you need to add the libraries needed:
+This package is an extension to Prisma, so first you need to do the initial Prisma setup on your project.
 
-`npm install prisma`
+```
+npm install prisma
+```
 
 Then, we need to initiate it, with the command:
 
-`npx prisma init`
+```
+npx prisma init
+```
 
 This will create a folder called <b>Prisma</b> into your project root, with a <b><i>schema.prisma</i></b> file inside.
 
@@ -28,7 +32,9 @@ For more informations about setting up prisma, check the official documentation 
 
 Now for this package, first we need to install it:
 
-`npm install prisma-packaged`
+```
+npm install prisma-packaged
+```
 
 And we can import it like this:
 
@@ -133,4 +139,4 @@ initializer
   })
 ```
 
-This package is still a work in progress, so all the feedback is welcome!
+This package is still a work in progress, so all feedback is valid!
