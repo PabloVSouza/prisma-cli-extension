@@ -1,5 +1,5 @@
 //@ts-ignore
-import { PrismaClient } from '../../../../node_modules/@prisma/client'
+import { PrismaClient } from '../../../node_modules/@prisma/client'
 import { fork } from 'child_process'
 import { PrismaConstants } from './constants'
 

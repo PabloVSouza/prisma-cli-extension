@@ -26,7 +26,7 @@ export class PrismaEngine {
   public sePath: string
   public platform: string
   public binaryTarget: string
-  public backPath: string = path.join(__dirname, '..', '..', '..')
+  public backPath: string = path.join(__dirname, '..', '..')
   private schemaEnginePath = path.join(this.backPath, '@prisma', 'engines')
   private queryEnginePath = path.join(this.backPath, '.prisma', 'client')
 
