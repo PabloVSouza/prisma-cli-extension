@@ -14,7 +14,7 @@ export class PrismaConstants extends PrismaEngine {
     process.env.DATABASE_URL = this.dbUrl
     process.env.PRISMA_CLI_BINARY_TARGETS = this.platform
 
-    const backPath = path.join(__dirname, '..', '..', '..')
+    const backPath = path.join(__dirname, '..', '..')
 
     this.prismaRoot =
       this.getPrismaLocation(path.join(backPath)) ??

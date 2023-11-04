@@ -33,17 +33,19 @@ export class PrismaInitializer extends PrismaMigration {
   }
 
   private prepareDb = async (): Promise<void> => {
-    const dbPath = this.dbUrl.substring(
+    const dbFolder = this.dbUrl.substring(
       this.dbUrl.indexOf('e:') + 2,
       this.dbUrl.lastIndexOf('/') + 1
     )
     const filename = this.dbUrl.substring(this.dbUrl.indexOf('/') + 1, this.dbUrl.lastIndexOf('?'))
-    const dbExists = fs.existsSync(path.join(dbPath, filename))
 
-    console.log({ dbPath, filename, path: path.join(dbPath, filename) })
+    const dbPath = path.join(dbFolder, filename)
+
+    const dbExists = fs.existsSync(dbPath)
+
     if (!dbExists) {
-      CreateDirectory(path.join(dbPath, filename))
-      fs.closeSync(fs.openSync(this.dbUrl, 'w'))
+      CreateDirectory(path.join(dbFolder))
+      fs.closeSync(fs.openSync(dbPath, 'w'))
     }
     await this.runMigration(this.prisma)
   }
