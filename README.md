@@ -8,7 +8,7 @@ This library was created originally with the purpose of supporting prisma and sq
 - Verify when database migrations are needed and run them programatically
 - Run prisma on packaged apps, like electron.
 
-The solutions on this package where inspired (but not the same) by this excelent [Article](https://dev.to/awohletz/running-prisma-migrate-in-an-electron-app-1ehm) and [Repository](https://github.com/awohletz/electron-prisma-trpc-example) from [Ayron Wohletz](https://twitter.com/ayron_wohletz).
+The solutions on this package where inspired (but not the same) by this [Article](https://www.funtoimagine.com/blog/using-react-trpc-electron/) and [Repository](https://github.com/awohletz/electron-prisma-trpc-example) from [Ayron Wohletz](https://twitter.com/ayron_wohletz).
 
 ## Usage
 
