@@ -35,7 +35,7 @@ export class PrismaInitializer extends PrismaMigration {
   private prepareDb = async (): Promise<void> => {
     const dbExists = fs.existsSync(this.dbUrl)
 
-    const path = this.dbUrl.substring(this.dbUrl.indexOf('e:') + 3, this.dbUrl.lastIndexOf('/'))
+    const path = this.dbUrl.substring(this.dbUrl.indexOf('e:') + 3)
 
     console.log(path)
 
