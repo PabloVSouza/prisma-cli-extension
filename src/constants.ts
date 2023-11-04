@@ -17,8 +17,6 @@ export class PrismaConstants extends PrismaEngine {
 
     const backPath = path.join(__dirname, '..', '..', '..')
 
-    console.log(backPath)
-
     this.prismaRoot =
       this.getPrismaLocation(path.join(backPath)) ??
       this.getPrismaLocation(path.join(backPath, '..', '..')) ??
