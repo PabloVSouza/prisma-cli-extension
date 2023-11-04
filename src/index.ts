@@ -2,6 +2,9 @@
 
 //@ts-ignore
 import { PrismaClient } from '../../../../node_modules/@prisma/client'
+import fs from 'fs'
+import path from 'path'
+import CreateDirectory from 'utils/CreateDirectory'
 import { PrismaMigration } from './migration'
 
 export class PrismaInitializer extends PrismaMigration {
@@ -10,6 +13,7 @@ export class PrismaInitializer extends PrismaMigration {
   constructor(public dbUrl: string, public latestMigration: string) {
     super(dbUrl, latestMigration)
     this.prisma = this.initializePrisma()
+    if (dbUrl.startsWith('file')) this.prepareDb()
   }
 
   private initializePrisma = (): PrismaClient => {
@@ -26,5 +30,19 @@ export class PrismaInitializer extends PrismaMigration {
         }
       }
     })
+  }
+
+  private prepareDb = async (): Promise<void> => {
+    const dbExists = fs.existsSync(this.dbUrl)
+
+    const path = this.dbUrl.substring(this.dbUrl.indexOf('e:/') + 3, this.dbUrl.lastIndexOf('/'))
+
+    console.log(path)
+
+    if (!dbExists) {
+      CreateDirectory(path)
+      fs.closeSync(fs.openSync(this.dbUrl, 'w'))
+    }
+    await this.runMigration(this.prisma)
   }
 }

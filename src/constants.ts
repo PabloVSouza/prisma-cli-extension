@@ -12,8 +12,7 @@ export class PrismaConstants extends PrismaEngine {
     super()
 
     process.env.DATABASE_URL = this.dbUrl
-
-    this.setBinaryTargets(this.platform)
+    process.env.PRISMA_CLI_BINARY_TARGETS = this.platform
 
     const backPath = path.join(__dirname, '..', '..', '..')
 
@@ -25,10 +24,6 @@ export class PrismaConstants extends PrismaEngine {
     this.prismaPath = path.join(backPath, 'prisma', 'build', 'index.js')
 
     this.schemaPath = path.join(this.prismaRoot, 'prisma', 'schema.prisma')
-  }
-
-  private setBinaryTargets = (platform: string) => {
-    process.env.PRISMA_CLI_BINARY_TARGETS = platform
   }
 
   private getPrismaLocation = (initialPath: string): string | undefined => {
