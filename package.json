@@ -2,7 +2,7 @@
   "name": "prisma-packaged",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
-  "version": "0.8.0",
+  "version": "0.8.1",
   "license": "ISC",
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
