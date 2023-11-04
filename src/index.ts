@@ -40,7 +40,7 @@ export class PrismaInitializer extends PrismaMigration {
     const filename = this.dbUrl.substring(this.dbUrl.indexOf('/') + 1, this.dbUrl.lastIndexOf('?'))
     const dbExists = fs.existsSync(path.join(dbPath, filename))
 
-    console.log(dbExists)
+    console.log({ dbPath, filename, path: path.join(dbPath, filename) })
     if (!dbExists) {
       CreateDirectory(path.join(dbPath, filename))
       fs.closeSync(fs.openSync(this.dbUrl, 'w'))
