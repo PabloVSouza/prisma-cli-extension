@@ -10,7 +10,7 @@ import { PrismaMigration } from './migration'
 export class PrismaInitializer extends PrismaMigration {
   public prisma: PrismaClient
 
-  constructor(public dbUrl: string, public latestMigration: string) {
+  constructor(public dbUrl: string, public latestMigration: string = '') {
     super(dbUrl, latestMigration)
     this.prisma = this.initializePrisma()
     if (dbUrl.startsWith('file')) this.prepareDb()
