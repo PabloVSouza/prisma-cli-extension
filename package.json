@@ -2,8 +2,12 @@
   "name": "prisma-packaged",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
-  "version": "0.8.2",
+  "version": "0.8.3",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/PabloVSouza/prisma-packaged.git"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
     "fix-path": "npx tsc-alias tsconfig-build.json",
