@@ -15,7 +15,9 @@ type Migration = {
 }
 
 export class PrismaMigration extends PrismaConstants {
-  public runMigration = async (prisma: PrismaClient): Promise<void> => {
+  public needsMigration: boolean
+
+  public verifyMigration = async (prisma: PrismaClient): Promise<boolean> => {
     let needsMigration: boolean
 
     try {
@@ -25,13 +27,14 @@ export class PrismaMigration extends PrismaConstants {
     } catch (e) {
       needsMigration = true
     }
+    return needsMigration
+  }
 
-    if (needsMigration) {
-      await this.runPrismaCommand({
-        command: ['migrate', 'deploy', '--schema', this.schemaPath],
-        dbUrl: this.dbUrl
-      })
-    }
+  public runMigration = async (): Promise<void> => {
+    await this.runPrismaCommand({
+      command: ['migrate', 'deploy', '--schema', this.schemaPath],
+      dbUrl: this.dbUrl
+    })
   }
 
   public runPrismaCommand = async ({

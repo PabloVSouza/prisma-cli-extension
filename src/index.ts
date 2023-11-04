@@ -47,6 +47,6 @@ export class PrismaInitializer extends PrismaMigration {
       CreateDirectory(path.join(dbFolder))
       fs.closeSync(fs.openSync(dbPath, 'w'))
     }
-    await this.runMigration(this.prisma)
+    await this.runMigration()
   }
 }
