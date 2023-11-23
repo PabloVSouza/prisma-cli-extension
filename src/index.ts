@@ -37,7 +37,10 @@ export class PrismaInitializer extends PrismaMigration {
       this.dbUrl.indexOf('e:') + 2,
       this.dbUrl.lastIndexOf('/') + 1
     )
-    const filename = this.dbUrl.substring(this.dbUrl.indexOf('/') + 1, this.dbUrl.lastIndexOf('?'))
+    const filename = this.dbUrl.substring(
+      this.dbUrl.lastIndexOf('/') + 1,
+      this.dbUrl.lastIndexOf('?')
+    )
 
     const dbPath = path.join(dbFolder, filename)
 

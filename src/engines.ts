@@ -2,6 +2,8 @@ import path from 'path'
 import fs from 'fs'
 import distroNameTranslations from './distro-name-translations'
 import sslVersions from './ssl-versions'
+import asar from '@electron/asar'
+import CreateDirectory from './utils/CreateDirectory'
 
 type TEngine = {
   [key: string]: {
@@ -26,24 +28,45 @@ export class PrismaEngine {
   public sePath: string
   public platform: string
   public binaryTarget: string
+
   public backPath: string = path.join(__dirname, '..', '..')
-  private schemaEnginePath = path.join(this.backPath, '@prisma', 'engines')
-  private queryEnginePath = path.join(this.backPath, '.prisma', 'client')
 
   constructor() {
     this.getPlatformData()
   }
 
-  private getPlatformData = () => {
+  private getPlatformData = (): void => {
     this.platform = process.platform
     const arch = process.arch
     const distro = this.platform === 'linux' ? this.getDistro() : undefined
     const fileName = this.getFileName(this.platform, arch, distro?.prismaName, distro?.ssl)
-
-    this.qePath = path.join(this.queryEnginePath, fileName.queryEngine)
-    this.sePath = path.join(this.schemaEnginePath, fileName.schemaEngine)
+    this.sePath = this.getEnginePath(
+      path.join(this.backPath, '@prisma', 'engines'),
+      fileName.schemaEngine
+    )
+    this.qePath = this.getEnginePath(
+      path.join(this.backPath, '.prisma', 'client'),
+      fileName.queryEngine
+    )
 
     this.binaryTarget = this.getBinaryTarget(this.platform)
+  }
+
+  private getEnginePath = (enginePath: string, fileName: string): string => {
+    if (enginePath.includes('app.asar')) {
+      const newPath = enginePath.replace('app.asar', '').replace('//', '/').replace('\\\\', '\\')
+      const finalFilePath = path.join(newPath, fileName)
+
+      if (!fs.existsSync(finalFilePath)) {
+        const asarLocation = enginePath.substring(0, enginePath.indexOf('asar') + 4)
+        const targetFile = path.join(enginePath.substring(enginePath.indexOf('asar') + 5), fileName)
+        CreateDirectory(newPath).then(() => {
+          fs.writeFileSync(path.join(newPath, fileName), asar.extractFile(asarLocation, targetFile))
+        })
+      }
+      return finalFilePath
+    }
+    return path.join(enginePath, fileName)
   }
 
   private getBinaryTarget = (platform: string): string => {
@@ -53,18 +76,18 @@ export class PrismaEngine {
   }
 
   private getDistro = (): TDistroInfo => {
-    let os = fs.readFileSync('/etc/os-release', 'utf8')
-    let opj = {} as { [key: string]: string }
+    const os = fs.readFileSync('/etc/os-release', 'utf8')
+    const opj = {} as { [key: string]: string }
 
-    os?.split('\n')?.forEach((line, _index) => {
-      let words = line?.split('=')
-      let key = words[0]?.toLowerCase()
+    os?.split('\n')?.forEach((line) => {
+      const words = line?.split('=')
+      const key = words[0]?.toLowerCase()
       if (key === '') return
-      let value = words[1]?.replace(/"/g, '')
+      const value = words[1]?.replace(/"/g, '')
       opj[key] = value
     })
 
-    let result = { ...opj } as TDistroInfo
+    const result = { ...opj } as TDistroInfo
 
     const ssl = this.getSSLVersion(result.id, result.version_id ?? 0)
     const prismaName = this.getDistroNameTranslation(result.id)
@@ -72,7 +95,7 @@ export class PrismaEngine {
     return { ...result, ssl, prismaName }
   }
 
-  private getSSLVersion = (distro: string, version: string | undefined) => {
+  private getSSLVersion = (distro: string, version: string | undefined): string => {
     const versionHasDots = version?.lastIndexOf('.') ?? 0 > 0
 
     const versionNumber = version
@@ -107,11 +130,16 @@ export class PrismaEngine {
     return ssl
   }
 
-  private getDistroNameTranslation = (distro: string) => {
+  private getDistroNameTranslation = (distro: string): string => {
     return distroNameTranslations[distro.toLowerCase()] ?? distro
   }
 
-  private getFileName = (platform: string, arch: string, distro = '', sslVersion: string = '') => {
+  private getFileName = (
+    platform: string,
+    arch: string,
+    distro = '',
+    sslVersion: string = ''
+  ): { queryEngine: string; schemaEngine: string } => {
     const archName = arch === 'arm64' ? '-arm64' : ''
     const engineFiles: TEngine = {
       win32: {
