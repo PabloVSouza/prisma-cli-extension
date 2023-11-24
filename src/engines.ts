@@ -28,11 +28,71 @@ export class PrismaEngine {
   public sePath: string
   public platform: string
   public binaryTarget: string
+  public prismaPath: string
+  public schemaPath: string
+  public prismaRoot: string
 
   public backPath: string = path.join(__dirname, '..', '..')
 
   constructor() {
     this.getPlatformData()
+    this.preparePrismaClient()
+  }
+
+  private preparePrismaClient = (): void => {
+    this.prismaRoot =
+      this.getPrismaLocation(path.join(this.backPath)) ??
+      this.getPrismaLocation(path.join(this.backPath, '..', '..')) ??
+      'Prisma not Found!'
+
+    this.prismaPath = path.join(this.backPath, 'prisma', 'build', 'index.js')
+
+    this.schemaPath = path.join(this.prismaRoot, 'prisma', 'schema.prisma')
+
+    if (this.prismaPath.includes('asar')) {
+      const asarLocation = this.prismaPath.substring(0, this.prismaPath.indexOf('asar') + 4)
+
+      const files = asar
+        .listPackage(asarLocation)
+        .filter((file) => file.includes('prisma') && !file.includes('prisma-packaged'))
+
+      this.prismaPath = this.prismaPath.replace('app.asar/', '')
+      this.schemaPath = this.schemaPath.replace('app.asar/', '')
+
+      for (const file of files) {
+        const filename = file.substring(file.lastIndexOf('/') + 1)
+        const finalPath = path.join(this.backPath, '..', file)
+        if (filename) {
+          const newPath = this.extractFile(finalPath)
+          try {
+            fs.chmodSync(newPath, '755')
+          } catch {
+            //Do nothing
+          }
+        }
+      }
+    }
+  }
+
+  private getPrismaLocation = (initialPath: string): string | undefined => {
+    const dirList = fs.readdirSync(initialPath)
+
+    const prismaDir = dirList.filter((item) => {
+      const folder = path.join(initialPath, item)
+
+      if (fs.lstatSync(folder).isDirectory()) {
+        const inside = fs.readdirSync(path.join(initialPath, item))
+        if (inside.includes('prisma')) {
+          if (
+            fs.lstatSync(path.join(folder, 'prisma')).isDirectory() &&
+            fs.existsSync(path.join(folder, 'prisma', 'schema.prisma'))
+          )
+            return inside
+        }
+      }
+    })
+
+    if (prismaDir.length) return path.join(initialPath, prismaDir[0])
   }
 
   private getPlatformData = (): void => {
@@ -54,16 +114,7 @@ export class PrismaEngine {
 
   private getEnginePath = (enginePath: string, fileName: string): string => {
     if (enginePath.includes('app.asar')) {
-      const newPath = enginePath.replace('app.asar', '').replace('//', '/').replace('\\\\', '\\')
-      const finalFilePath = path.join(newPath, fileName)
-
-      if (!fs.existsSync(finalFilePath)) {
-        const asarLocation = enginePath.substring(0, enginePath.indexOf('asar') + 4)
-        const targetFile = path.join(enginePath.substring(enginePath.indexOf('asar') + 5), fileName)
-        CreateDirectory(newPath).then(() => {
-          fs.writeFileSync(path.join(newPath, fileName), asar.extractFile(asarLocation, targetFile))
-        })
-      }
+      const finalFilePath = this.extractFile(path.join(enginePath, fileName))
       return finalFilePath
     }
     return path.join(enginePath, fileName)
@@ -157,5 +208,31 @@ export class PrismaEngine {
     }
 
     return engineFiles[platform]
+  }
+
+  private extractFile = (originalPath: string): string => {
+    try {
+      const fileName = originalPath.substring(originalPath.lastIndexOf('/') + 1)
+      const newPath = originalPath
+        .substring(0, originalPath.lastIndexOf('/'))
+        .replace('app.asar', '')
+        .replace('//', '/')
+        .replace('\\\\', '\\')
+      const finalFilePath = path.join(newPath, fileName)
+
+      if (!fs.existsSync(finalFilePath)) {
+        const asarLocation = originalPath.substring(0, originalPath.indexOf('asar') + 4)
+        const targetFile = originalPath.substring(originalPath.indexOf('asar') + 5)
+
+        CreateDirectory(newPath).then(() => {
+          const writePath = path.join(newPath, fileName)
+          fs.writeFileSync(path.join(writePath), asar.extractFile(asarLocation, targetFile))
+        })
+      }
+      return finalFilePath
+    } catch {
+      console.log(`Not a file ${originalPath}`)
+    }
+    return ''
   }
 }
