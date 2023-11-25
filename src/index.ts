@@ -34,11 +34,11 @@ export class PrismaInitializer extends PrismaMigration {
 
   private prepareDb = async (): Promise<void> => {
     const dbFolder = this.dbUrl.substring(
-      this.dbUrl.indexOf('e:') + 2,
-      this.dbUrl.lastIndexOf('/') + 1
+      this.dbUrl.indexOf('le:') + 3,
+      this.dbUrl.includes('/') ? this.dbUrl.lastIndexOf('/') + 1 : this.dbUrl.lastIndexOf('\\')
     )
     const filename = this.dbUrl.substring(
-      this.dbUrl.lastIndexOf('/') + 1,
+      this.dbUrl.includes('/') ? this.dbUrl.lastIndexOf('/') + 1 : this.dbUrl.lastIndexOf('\\'),
       this.dbUrl.lastIndexOf('?')
     )
 

@@ -50,25 +50,24 @@ export class PrismaEngine {
     this.schemaPath = path.join(this.prismaRoot, 'prisma', 'schema.prisma')
 
     if (this.prismaPath.includes('asar')) {
-      const asarLocation = this.prismaPath.substring(0, this.prismaPath.indexOf('asar') + 4)
+      const asarLocation = path.join(
+        this.prismaPath.substring(0, this.prismaPath.indexOf('asar') + 4)
+      )
 
       const files = asar
         .listPackage(asarLocation)
         .filter((file) => file.includes('prisma') && !file.includes('prisma-packaged'))
 
-      this.prismaPath = this.prismaPath.replace('app.asar/', '')
-      this.schemaPath = this.schemaPath.replace('app.asar/', '')
+      this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
+      this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
 
       for (const file of files) {
-        const filename = file.substring(file.lastIndexOf('/') + 1)
         const finalPath = path.join(this.backPath, '..', file)
-        if (filename) {
-          const newPath = this.extractFile(finalPath)
-          try {
-            fs.chmodSync(newPath, '755')
-          } catch {
-            //Do nothing
-          }
+        const newPath = this.extractFile(finalPath)
+        try {
+          fs.chmodSync(newPath, '755')
+        } catch {
+          //Do nothing
         }
       }
     }
@@ -211,27 +210,34 @@ export class PrismaEngine {
   }
 
   private extractFile = (originalPath: string): string => {
+    const fixedPath = originalPath
+
     try {
-      const fileName = originalPath.substring(originalPath.lastIndexOf('/') + 1)
-      const newPath = originalPath
-        .substring(0, originalPath.lastIndexOf('/'))
+      const fileName = fixedPath.substring(
+        fixedPath.includes('/') ? fixedPath.lastIndexOf('/') + 1 : fixedPath.lastIndexOf('\\') + 1
+      )
+      const newPath = fixedPath
+        .substring(
+          0,
+          fixedPath.includes('/') ? fixedPath.lastIndexOf('/') : fixedPath.lastIndexOf('\\')
+        )
         .replace('app.asar', '')
         .replace('//', '/')
-        .replace('\\\\', '\\')
+
       const finalFilePath = path.join(newPath, fileName)
 
       if (!fs.existsSync(finalFilePath)) {
-        const asarLocation = originalPath.substring(0, originalPath.indexOf('asar') + 4)
-        const targetFile = originalPath.substring(originalPath.indexOf('asar') + 5)
+        const asarLocation = path.join(fixedPath.substring(0, fixedPath.indexOf('asar') + 4))
+        const targetFile = fixedPath.substring(fixedPath.indexOf('asar') + 5)
 
-        CreateDirectory(newPath).then(() => {
-          const writePath = path.join(newPath, fileName)
-          fs.writeFileSync(path.join(writePath), asar.extractFile(asarLocation, targetFile))
-        })
+        CreateDirectory(newPath)
+        const writePath = path.join(newPath, fileName)
+
+        fs.writeFileSync(path.join(writePath), asar.extractFile(asarLocation, targetFile))
       }
       return finalFilePath
     } catch {
-      console.log(`Not a file ${originalPath}`)
+      //
     }
     return ''
   }
