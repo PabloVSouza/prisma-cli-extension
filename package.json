@@ -4,7 +4,10 @@
   "types": "types/index.d.ts",
   "version": "0.9.2",
   "license": "MIT",
-  "repository": "https://github.com/PabloVSouza/prisma-packaged.git",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/PabloVSouza/prisma-packaged.git"
+  },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
     "fix-path": "npx tsc-alias tsconfig-build.json",
