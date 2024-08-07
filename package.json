@@ -2,7 +2,7 @@
   "name": "prisma-packaged",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
-  "version": "0.9.3",
+  "version": "0.9.4",
   "license": "MIT",
   "repository": {
     "type": "git",
@@ -23,7 +23,7 @@
     "@electron/asar": "^3.2.10",
     "copyfiles": "^2.4.1",
     "express": "^4.19.2",
-    "prisma": "^5.17.0",
+    "prisma": "^5.18.0",
     "tsc": "^2.0.4",
     "tsconfig-paths": "^4.2.0",
     "typescript": "^5.5.4"
