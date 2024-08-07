@@ -139,14 +139,14 @@ export class PrismaEngine {
 
     const result = { ...opj } as TDistroInfo
 
-    const ssl = this.getSSLVersion(result.id, result.version_id ?? 0)
+    const ssl = this.getSSLVersion(result.id, result.version_id)
     const prismaName = this.getDistroNameTranslation(result.id)
 
     return { ...result, ssl, prismaName }
   }
 
-  private getSSLVersion = (distro: string, version: string | undefined): string => {
-    const versionHasDots = version?.lastIndexOf('.') ?? 0 > 0
+  private getSSLVersion = (distro: string, version?: string): string => {
+    const versionHasDots = version && version.includes('.')
 
     const versionNumber = version
       ? Number(
