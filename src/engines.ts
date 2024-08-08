@@ -194,8 +194,12 @@ export class PrismaEngine {
     const engineFiles: TEngine = {
       win32: {
         queryEngine: 'query_engine-windows.dll.node',
-        schemaEngine: 'schema-engine-windows.exe'
+        schemaEngine:
+          arch === 'arm64'
+            ? `libquery_engine-darwin${archName}.dylib.node`
+            : 'schema-engine-windows.exe'
       },
+
       darwin: {
         schemaEngine: `schema-engine-darwin${archName}`,
         queryEngine: `libquery_engine-darwin${archName}.dylib.node`
