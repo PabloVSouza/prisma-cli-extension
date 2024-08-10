@@ -10,14 +10,10 @@ import { PrismaMigration } from './migration'
 export class PrismaInitializer extends PrismaMigration {
   public prisma: PrismaClient
 
-  constructor(public dbUrl: string, public latestMigration: string = '') {
-    super(dbUrl, latestMigration)
-    this.prisma = this.initializePrisma()
-    if (dbUrl.startsWith('file')) this.prepareDb()
-  }
+  public initializePrisma = async () => {
+    if (this.dbUrl.startsWith('file')) await this.prepareDb()
 
-  private initializePrisma = (): PrismaClient => {
-    return new PrismaClient({
+    this.prisma = new PrismaClient({
       datasources: {
         db: {
           url: this.dbUrl
