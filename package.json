@@ -2,7 +2,7 @@
   "name": "prisma-packaged",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
-  "version": "0.9.5",
+  "version": "0.9.6",
   "license": "MIT",
   "repository": {
     "type": "git",

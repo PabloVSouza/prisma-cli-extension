@@ -1,5 +1,5 @@
 import path from 'path'
-import fs from 'fs'
+import fs, { existsSync } from 'fs'
 import distroNameTranslations from './distro-name-translations'
 import sslVersions from './ssl-versions'
 import asar from '@electron/asar'
@@ -8,7 +8,7 @@ import CreateDirectory from './utils/CreateDirectory'
 type TEngine = {
   [key: string]: {
     queryEngine: string
-    schemaEngine: string
+    schemaEngine: string[]
   }
 }
 
@@ -99,24 +99,33 @@ export class PrismaEngine {
     const arch = process.arch
     const distro = this.platform === 'linux' ? this.getDistro() : undefined
     const fileName = this.getFileName(this.platform, arch, distro?.prismaName, distro?.ssl)
+
     this.sePath = this.getEnginePath(
       path.join(this.backPath, '@prisma', 'engines'),
       fileName.schemaEngine
     )
-    this.qePath = this.getEnginePath(
-      path.join(this.backPath, '.prisma', 'client'),
+    this.qePath = this.getEnginePath(path.join(this.backPath, '.prisma', 'client'), [
       fileName.queryEngine
-    )
+    ])
 
     this.binaryTarget = this.getBinaryTarget(this.platform)
   }
 
-  private getEnginePath = (enginePath: string, fileName: string): string => {
+  private getEnginePath = (enginePath: string, fileNames: string[]): string => {
     if (enginePath.includes('app.asar')) {
-      const finalFilePath = this.extractFile(path.join(enginePath, fileName))
-      return finalFilePath
+      for (const file of fileNames) {
+        const filePath = this.extractFile(path.join(enginePath, file))
+        if (fs.existsSync(filePath)) return filePath
+      }
     }
-    return path.join(enginePath, fileName)
+
+    let finalFilePath = ''
+
+    for (const file of fileNames) {
+      if (existsSync(path.join(enginePath, file))) finalFilePath = path.join(enginePath, file)
+    }
+
+    return finalFilePath
   }
 
   private getBinaryTarget = (platform: string): string => {
@@ -189,24 +198,21 @@ export class PrismaEngine {
     arch: string,
     distro = '',
     sslVersion: string = ''
-  ): { queryEngine: string; schemaEngine: string } => {
+  ): { queryEngine: string; schemaEngine: string[] } => {
     const archName = arch === 'arm64' ? '-arm64' : ''
     const engineFiles: TEngine = {
       win32: {
         queryEngine: 'query_engine-windows.dll.node',
-        schemaEngine:
-          arch === 'arm64'
-            ? `libquery_engine-darwin${archName}.dylib.node`
-            : 'schema-engine-windows.exe'
+        schemaEngine: [`libquery_engine-darwin${archName}.dylib.node`, 'schema-engine-windows.exe']
       },
 
       darwin: {
-        schemaEngine: `schema-engine-darwin${archName}`,
-        queryEngine: `libquery_engine-darwin${archName}.dylib.node`
+        queryEngine: `libquery_engine-darwin${archName}.dylib.node`,
+        schemaEngine: [`schema-engine-darwin${archName}`]
       },
       linux: {
-        schemaEngine: `schema-engine-${distro}${archName}-openssl-${sslVersion}`,
-        queryEngine: `libquery_engine-${distro}${archName}-openssl-${sslVersion}.so.node`
+        queryEngine: `libquery_engine-${distro}${archName}-openssl-${sslVersion}.so.node`,
+        schemaEngine: [`schema-engine-${distro}${archName}-openssl-${sslVersion}`]
       }
     }
 
