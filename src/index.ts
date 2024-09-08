@@ -1,14 +1,24 @@
 /// <reference types="node" />
 
-//@ts-ignore
-import { PrismaClient } from '@prisma/client'
 import fs from 'fs'
 import path from 'path'
 import CreateDirectory from 'utils/CreateDirectory'
+import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 import { PrismaMigration } from './migration'
 
+let PrismaClient: PrismaClientProps
+
+try {
+  // Dynamically require the module
+  PrismaClient = require('@prisma/client').PrismaClient
+} catch (error) {
+  throw new Error(
+    "@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project."
+  )
+}
+
 export class PrismaInitializer extends PrismaMigration {
-  public prisma: PrismaClient
+  public prisma: PrismaClientProps
 
   public initializePrisma = async () => {
     if (this.dbUrl.startsWith('file')) await this.prepareDb()

@@ -1,5 +1,3 @@
-import path from 'path'
-import fs from 'fs'
 import { PrismaEngine } from './engines'
 
 export class PrismaConstants extends PrismaEngine {

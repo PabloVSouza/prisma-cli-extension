@@ -1,7 +1,6 @@
-//@ts-ignore
-import { PrismaClient } from '../../../node_modules/@prisma/client'
 import { fork } from 'child_process'
 import { PrismaConstants } from './constants'
+import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 
 type Migration = {
   id: string
@@ -14,10 +13,21 @@ type Migration = {
   applied_steps_count: string
 }
 
+let PrismaClient: PrismaClientProps
+
+try {
+  // Dynamically require the module
+  PrismaClient = require('@prisma/client').PrismaClient
+} catch (error) {
+  throw new Error(
+    "@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project."
+  )
+}
+
 export class PrismaMigration extends PrismaConstants {
   public needsMigration: boolean
 
-  public verifyMigration = async (prisma: PrismaClient): Promise<boolean> => {
+  public verifyMigration = async (prisma: PrismaClientProps): Promise<boolean> => {
     let needsMigration: boolean
 
     try {
