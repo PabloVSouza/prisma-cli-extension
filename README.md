@@ -1,4 +1,4 @@
-# Prisma Commander
+# Prisma Shell Extension
 
 ## A PrismaDB extension library that add some usefull functionalities.
 
@@ -33,13 +33,13 @@ For more informations about setting up prisma, check the official documentation 
 Now for this package, first we need to install it:
 
 ```
-npm install prisma-commander
+npm install prisma-shell-extension
 ```
 
 And we can import it like this:
 
 ```typescript
-import { PrismaInitializer } from 'prisma-commander'
+import { PrismaInitializer } from 'prisma-shell-extension'
 ```
 
 This is a class that requires two params:
@@ -49,7 +49,7 @@ This is a class that requires two params:
 - The secone one is the name of your latest migration. You need to update this every time there's a new migration (Or you could write some code to get this automatically, that's up to you 😊)
 
 ```typescript
-import { PrismaInitializer } from 'prisma-commander'
+import { PrismaInitializer } from 'prisma-shell-extension'
 
 const dbConnection = 'mysql://user:password@host:port/database'
 const dbMigration = '2023_mylatestcoolmigration'
@@ -60,7 +60,7 @@ const initializer = new PrismaInitializer(dbConnection, dbMigration)
 Now that we have initiated our class, we can use our prisma connection like this:
 
 ```typescript
-import { PrismaInitializer } from 'prisma-commander'
+import { PrismaInitializer } from 'prisma-shell-extension'
 
 const dbConnection = 'mysql://user:password@host:port/database'
 const dbMigration = '2023_mylatestcoolmigration'
@@ -77,7 +77,7 @@ We also have a <b>async</b> function called <b><i>verifyMigration()</i></b>, tha
 This function needs the current prisma connection as a parameter.
 
 ```typescript
-import { PrismaInitializer } from 'prisma-commander'
+import { PrismaInitializer } from 'prisma-shell-extension'
 
 const dbConnection = 'mysql://user:password@host:port/database'
 const dbMigration = '2023_mylatestcoolmigration'
@@ -94,7 +94,7 @@ initializer.checkMigration(prisma).then(() => {
 And now we get to running the migration itself, and we have the function <b><i>runMigration()</i></b> that does exactly this.
 
 ```typescript
-import { PrismaInitializer } from 'prisma-commander'
+import { PrismaInitializer } from 'prisma-shell-extension'
 
 const dbConnection = 'mysql://user:password@host:port/database'
 const dbMigration = '2023_mylatestcoolmigration'
@@ -116,7 +116,7 @@ And just to finalize the features of this package, we can also run any Prisma CL
 As an example, let's copy how the <b><i>runMigration()</i></b> function does it's migration magic using the <b><i>runPrismaCommand()</b></i> function:
 
 ```typescript
-import { PrismaInitializer } from 'prisma-commander'
+import { PrismaInitializer } from 'prisma-shell-extension'
 
 const dbConnection = 'mysql://user:password@host:port/database'
 const dbMigration = '2023_mylatestcoolmigration'

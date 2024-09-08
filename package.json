@@ -1,31 +1,33 @@
 {
-  "name": "prisma-commander",
+  "name": "prisma-shell-extension",
   "main": "dist/index.js",
+  "files": [
+    "dist/**"
+  ],
   "types": "types/index.d.ts",
   "version": "1.0.0",
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PabloVSouza/prisma-packaged.git"
+    "url": "git+https://github.com/PabloVSouza/prisma-shell-extension.git"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
     "fix-path": "npx tsc-alias tsconfig-build.json",
     "build": "tsc --project tsconfig.json && yarn fix-path",
     "lint": "eslint src --ext ts",
-    "tsc": "tsc --noEmit",
-    "postinstall": "yarn build"
+    "tsc": "tsc --noEmit"
   },
   "devDependencies": {
     "@types/node": "^22.1.0",
     "typescript": "^5.5.4",
     "tsconfig-paths": "^4.2.0",
-    "@prisma/client": "^5.18.0",
+    "@prisma/client": "^5.19.1",
     "tsc": "^2.0.4",
     "copyfiles": "^2.4.1"
   },
   "peerDependencies": {
-    "prisma": "^5.18.0"
+    "@prisma/client": "^5.19.1"
   },
   "dependencies": {
     "@electron/asar": "^3.2.10"
