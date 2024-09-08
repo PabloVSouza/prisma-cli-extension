@@ -1,5 +1,5 @@
 {
-  "name": "prismacommander",
+  "name": "prisma-commander",
   "main": "dist/index.js",
   "types": "types/index.d.ts",
   "version": "1.0.0",
