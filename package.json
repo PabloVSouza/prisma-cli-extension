@@ -1,5 +1,5 @@
 {
-  "name": "prisma-shell-extension",
+  "name": "prisma-cli-extension",
   "main": "dist/index.js",
   "files": [
     "dist/**",
@@ -10,7 +10,7 @@
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/PabloVSouza/prisma-shell-extension.git"
+    "url": "git+https://github.com/PabloVSouza/prisma-cli-extension.git"
   },
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
@@ -20,12 +20,12 @@
     "tsc": "tsc --noEmit"
   },
   "devDependencies": {
-    "@types/node": "^22.1.0",
-    "typescript": "^5.5.4",
-    "tsconfig-paths": "^4.2.0",
     "@prisma/client": "^5.19.1",
+    "@types/node": "^22.1.0",
+    "copyfiles": "^2.4.1",
     "tsc": "^2.0.4",
-    "copyfiles": "^2.4.1"
+    "tsconfig-paths": "^4.2.0",
+    "typescript": "^5.5.4"
   },
   "peerDependencies": {
     "@prisma/client": "^5.19.1"
@@ -33,5 +33,5 @@
   "dependencies": {
     "@electron/asar": "^3.2.10"
   },
-  "packageManager": "yarn@1.22.22+sha512.a6b2f7906b721bba3d67d4aff083df04dad64c399707841b7acf00f6b133b7ac24255f2652fa22ae3534329dc6180534e98d17432037ff6fd140556e2bb3137e"
+  "packageManager": "yarn@4.5.1"
 }
