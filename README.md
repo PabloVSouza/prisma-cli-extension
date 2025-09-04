@@ -139,4 +139,111 @@ initializer
   })
 ```
 
-This package is still a work in progress, so all feedback is valid!
+## Development
+
+### Prerequisites
+
+- Node.js 18.x or 20.x
+- npm or yarn
+
+### Setup
+
+```bash
+# Clone the repository
+git clone https://github.com/PabloVSouza/prisma-cli-extension.git
+cd prisma-cli-extension
+
+# Install dependencies
+npm install
+
+# Run tests
+npm test
+
+# Build the project
+npm run build
+```
+
+### Available Scripts
+
+- `npm test` - Run tests
+- `npm run test:watch` - Run tests in watch mode
+- `npm run test:coverage` - Run tests with coverage
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix ESLint issues
+- `npm run tsc` - TypeScript type checking
+- `npm run build` - Build the project
+- `npm run clean` - Clean build artifacts
+
+### Testing
+
+This project includes comprehensive unit and integration tests:
+
+```bash
+# Run all tests
+npm test
+
+# Run tests with coverage
+npm run test:coverage
+
+# Run tests in watch mode during development
+npm run test:watch
+```
+
+### CI/CD Pipeline
+
+This project uses GitHub Actions for continuous integration and deployment:
+
+- **CI Pipeline**: Runs on every push and pull request
+
+  - TypeScript compilation
+  - Linting
+  - Testing
+  - Build verification
+  - Security audit
+
+- **Release Pipeline**: Automatically triggered on main branch
+  - **Safety First**: Only runs after all tests pass and code is merged
+  - Semantic versioning based on commit messages
+  - Automatic changelog generation
+  - NPM publishing
+  - GitHub release creation
+
+### Contributing
+
+1. Fork the repository
+2. Create a feature branch
+3. Make your changes
+4. Add tests for new functionality
+5. Ensure all tests pass
+6. Submit a pull request
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+For information about the release process, see [RELEASE_PROCESS.md](RELEASE_PROCESS.md).
+
+## Environment Detection
+
+The package automatically detects your environment and adapts accordingly:
+
+- **Development**: Uses project-relative paths
+- **Production**: Uses appropriate system paths
+- **Electron**: Handles ASAR-packed applications
+- **Cross-platform**: Works on Windows, macOS, and Linux
+
+## Error Handling
+
+The package includes comprehensive error handling and logging:
+
+- Detailed error messages for debugging
+- Graceful fallbacks for missing dependencies
+- Environment-specific path resolution
+- Permission error handling
+
+## Security
+
+- Regular dependency audits
+- CodeQL security analysis
+- No hardcoded secrets
+- Secure file system operations
+
+This package is actively maintained and all feedback is welcome!

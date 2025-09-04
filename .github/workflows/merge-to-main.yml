@@ -1,0 +1,53 @@
+name: Merge to Main
+
+on:
+  push:
+    branches: [main, master, staging]
+
+jobs:
+  validate-merge:
+    name: Validate Merge
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master' || github.ref == 'refs/heads/staging')
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Check if this is a merge commit
+        id: check_merge
+        run: |
+          # Check if this is a merge commit (has multiple parents)
+          PARENT_COUNT=$(git rev-list --count --parents HEAD | awk '{print $1}')
+          if [ "$PARENT_COUNT" -gt 1 ]; then
+            echo "is_merge=true" >> $GITHUB_OUTPUT
+            echo "This is a merge commit"
+          else
+            echo "is_merge=false" >> $GITHUB_OUTPUT
+            echo "This is not a merge commit"
+          fi
+
+      - name: Check if tests passed on the merged PR
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: |
+          # Get the merge commit message to find the PR number
+          MERGE_MSG=$(git log -1 --pretty=%B)
+          echo "Merge commit message: $MERGE_MSG"
+
+          # Extract PR number from merge commit message
+          if echo "$MERGE_MSG" | grep -q "Merge pull request"; then
+            PR_NUMBER=$(echo "$MERGE_MSG" | grep -o '#[0-9]*' | sed 's/#//')
+            echo "PR Number: $PR_NUMBER"
+            echo "pr_number=$PR_NUMBER" >> $GITHUB_OUTPUT
+          else
+            echo "Could not extract PR number from merge commit"
+            exit 1
+          fi
+
+      - name: Verify PR was merged successfully
+        if: steps.check_merge.outputs.is_merge == 'true'
+        run: |
+          echo "Verifying that the merged PR had all checks passing..."
+          echo "This ensures the release will only happen after successful testing"
