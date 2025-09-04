@@ -1,3 +1,9 @@
+## [1.1.0] - 2025-09-04
+
+
+
+---
+
 ## [1.0.3-alpha.20250904222746-alpha.20250904224135] - 2025-09-04 [STAGING]
 
 > **⚠️ This is a staging/pre-release version**
