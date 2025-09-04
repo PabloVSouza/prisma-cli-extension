@@ -1,3 +1,14 @@
+## [1.0.3-alpha.20250904222746-alpha.20250904224135] - 2025-09-04 [STAGING]
+
+> **⚠️ This is a staging/pre-release version**
+> This version is for testing purposes only and may contain unstable features.
+
+- fix: resolve CI/CD failures (8d12726)
+- fix: correct ts-jest version and packageManager format (998a5ba)
+- fix: address CodeRabbit review suggestions (a5df61a)
+
+---
+
 ## [1.0.3-alpha.20250904222746] - 2025-09-04 [STAGING]
 
 > **⚠️ This is a staging/pre-release version**
