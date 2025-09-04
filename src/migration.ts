@@ -25,11 +25,9 @@ interface PrismaCommandResult {
   stderr: string
 }
 
-let _PrismaClient: PrismaClientProps
-
+// Verify Prisma client is available
 try {
-  // Dynamically require the module
-  _PrismaClient = require('@prisma/client').PrismaClient
+  require('@prisma/client')
 } catch {
   throw new Error(
     "@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project."
