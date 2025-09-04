@@ -53,7 +53,7 @@
     "@prisma/client": "^6.15.0"
   },
   "dependencies": {
-    "@electron/asar": "^4.0.1"
+    "@electron/asar": "^3.4.1"
   },
   "packageManager": "npm@10.0.0"
 }
