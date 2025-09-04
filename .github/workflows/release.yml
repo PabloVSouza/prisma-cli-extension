@@ -112,6 +112,10 @@ jobs:
       - name: Bump version
         id: version
         run: |
+          # Determine if this is a staging release
+          IS_STAGING="${{ github.ref == 'refs/heads/staging' }}"
+          echo "Is staging release: $IS_STAGING"
+
           # Determine version bump type
           if [ "${{ github.event_name }}" = "workflow_dispatch" ]; then
             BUMP_TYPE="${{ github.event.inputs.release_type }}"
@@ -129,20 +133,39 @@ jobs:
 
           echo "Bump type: $BUMP_TYPE"
 
-          # Bump version
-          npm version $BUMP_TYPE --no-git-tag-version
-
-          # Get new version
-          NEW_VERSION=$(node -p "require('./package.json').version")
-          echo "New version: $NEW_VERSION"
+          # Handle staging releases with pre-release tags
+          if [ "$IS_STAGING" = "true" ]; then
+            # For staging, create a pre-release version
+            # Get current version and add alpha pre-release
+            CURRENT_VERSION=$(node -p "require('./package.json').version")
+            echo "Current version: $CURRENT_VERSION"
+            
+            # Create alpha pre-release version
+            # Format: 1.2.3-alpha.1, 1.2.3-alpha.2, etc.
+            ALPHA_VERSION="${CURRENT_VERSION}-alpha.$(date +%Y%m%d%H%M%S)"
+            echo "Alpha version: $ALPHA_VERSION"
+            
+            # Update package.json with alpha version
+            npm pkg set version="$ALPHA_VERSION"
+            
+            NEW_VERSION="$ALPHA_VERSION"
+            echo "New staging version: $NEW_VERSION"
+          else
+            # For main/master, use normal version bumping
+            npm version $BUMP_TYPE --no-git-tag-version
+            NEW_VERSION=$(node -p "require('./package.json').version")
+            echo "New production version: $NEW_VERSION"
+          fi
 
           echo "version=$NEW_VERSION" >> $GITHUB_OUTPUT
           echo "bump_type=$BUMP_TYPE" >> $GITHUB_OUTPUT
+          echo "is_staging=$IS_STAGING" >> $GITHUB_OUTPUT
 
       - name: Update changelog
         run: |
           NEW_VERSION="${{ steps.version.outputs.version }}"
           CHANGELOG="${{ steps.changelog.outputs.changelog }}"
+          IS_STAGING="${{ steps.version.outputs.is_staging }}"
 
           # Create or update CHANGELOG.md
           if [ ! -f CHANGELOG.md ]; then
@@ -150,27 +173,58 @@ jobs:
             echo "" >> CHANGELOG.md
           fi
 
-          # Add new version entry
-          {
-            echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)"
-            echo ""
-            echo "$CHANGELOG"
-            echo ""
-            echo "---"
-            echo ""
-          } | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+          # Add new version entry with appropriate header
+          if [ "$IS_STAGING" = "true" ]; then
+            # For staging releases, mark as pre-release
+            {
+              echo "## [$NEW_VERSION] - $(date +%Y-%m-%d) [STAGING]"
+              echo ""
+              echo "> **⚠️ This is a staging/pre-release version**"
+              echo "> This version is for testing purposes only and may contain unstable features."
+              echo ""
+              echo "$CHANGELOG"
+              echo ""
+              echo "---"
+              echo ""
+            } | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+          else
+            # For production releases, use normal format
+            {
+              echo "## [$NEW_VERSION] - $(date +%Y-%m-%d)"
+              echo ""
+              echo "$CHANGELOG"
+              echo ""
+              echo "---"
+              echo ""
+            } | cat - CHANGELOG.md > temp && mv temp CHANGELOG.md
+          fi
 
       - name: Commit changes
         run: |
           git add package.json package-lock.json CHANGELOG.md
-          git commit -m "chore: release v${{ steps.version.outputs.version }}"
+          if [ "${{ steps.version.outputs.is_staging }}" = "true" ]; then
+            git commit -m "chore: release staging v${{ steps.version.outputs.version }}"
+          else
+            git commit -m "chore: release v${{ steps.version.outputs.version }}"
+          fi
 
       - name: Create tag
         run: |
-          git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          if [ "${{ steps.version.outputs.is_staging }}" = "true" ]; then
+            git tag -a "v${{ steps.version.outputs.version }}" -m "Staging Release v${{ steps.version.outputs.version }}"
+          else
+            git tag -a "v${{ steps.version.outputs.version }}" -m "Release v${{ steps.version.outputs.version }}"
+          fi
 
       - name: Publish to npm
-        run: npm publish
+        run: |
+          if [ "${{ steps.version.outputs.is_staging }}" = "true" ]; then
+            echo "Publishing pre-release version to npm..."
+            npm publish --tag alpha
+          else
+            echo "Publishing production version to npm..."
+            npm publish
+          fi
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
@@ -185,8 +239,12 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: v${{ steps.version.outputs.version }}
-          release_name: Release v${{ steps.version.outputs.version }}
+          release_name: ${{ steps.version.outputs.is_staging == 'true' && format('Staging Release v{0}', steps.version.outputs.version) || format('Release v{0}', steps.version.outputs.version) }}
           body: |
+            ${{ steps.version.outputs.is_staging == 'true' && '> **⚠️ This is a staging/pre-release version**' || '' }}
+            ${{ steps.version.outputs.is_staging == 'true' && '> This version is for testing purposes only and may contain unstable features.' || '' }}
+            ${{ steps.version.outputs.is_staging == 'true' && '' || '' }}
+
             ## Changes in v${{ steps.version.outputs.version }}
 
             ${{ steps.changelog.outputs.changelog }}
@@ -194,7 +252,7 @@ jobs:
             ## Installation
 
             ```bash
-            npm install prisma-cli-extension@${{ steps.version.outputs.version }}
+            ${{ steps.version.outputs.is_staging == 'true' && format('npm install prisma-cli-extension@{0} --tag alpha', steps.version.outputs.version) || format('npm install prisma-cli-extension@{0}', steps.version.outputs.version) }}
             ```
           draft: false
-          prerelease: false
+          prerelease: ${{ steps.version.outputs.is_staging == 'true' }}
