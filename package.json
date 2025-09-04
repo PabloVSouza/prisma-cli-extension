@@ -15,7 +15,7 @@
   "scripts": {
     "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
     "fix-path": "npx tsc-alias tsconfig-build.json",
-    "build": "tsc --project tsconfig.json && yarn fix-path",
+    "build": "tsc --project tsconfig.json && npm run fix-path",
     "lint": "eslint src --ext ts",
     "lint:fix": "eslint src --ext ts --fix",
     "tsc": "tsc --noEmit",
@@ -43,7 +43,7 @@
     "eslint": "^9.34.0",
     "globals": "^16.3.0",
     "jest": "^30.1.3",
-    "ts-jest": "^30.0.0",
+    "ts-jest": "^29.4.1",
     "ts-node-dev": "^2.0.0",
     "tsc-alias": "^1.8.16",
     "tsconfig-paths": "^4.2.0",
@@ -55,5 +55,5 @@
   "dependencies": {
     "@electron/asar": "^4.0.1"
   },
-  "packageManager": "npm@10"
+  "packageManager": "npm@10.0.0"
 }
