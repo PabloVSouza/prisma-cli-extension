@@ -89,22 +89,23 @@ export class PrismaInitializer extends PrismaMigration {
     const pathPart = this.dbUrl.substring(fileIndex + filePrefix.length)
     const queryIndex = pathPart.indexOf('?')
     const cleanPath = queryIndex !== -1 ? pathPart.substring(0, queryIndex) : pathPart
+    const decodedPath = decodeURIComponent(cleanPath)
 
     // Handle different path formats
     let resolvedPath: string
 
-    if (path.isAbsolute(cleanPath)) {
+    if (path.isAbsolute(decodedPath)) {
       // Absolute path - use as is
-      resolvedPath = cleanPath
+      resolvedPath = path.normalize(decodedPath)
     } else {
       // Relative path - resolve based on environment
       if (this.environment.isDevelopment) {
         // In development, resolve relative to project root
-        resolvedPath = path.resolve(this.environment.appPath, cleanPath)
+        resolvedPath = path.resolve(this.environment.appPath, decodedPath)
       } else {
         // In production, resolve relative to app data directory
         const appDataPath = this.getAppDataPath()
-        resolvedPath = path.resolve(appDataPath, cleanPath)
+        resolvedPath = path.resolve(appDataPath, decodedPath)
       }
     }
 
@@ -124,8 +125,5 @@ export class PrismaInitializer extends PrismaMigration {
     }
   }
 
-  private normalizeDbPath = (dbPath: string): string => {
-    // Handle relative paths that start with '..'
-    return dbPath.startsWith('..') ? dbPath.substring(1) : dbPath
-  }
+  // Removed unused normalizeDbPath helper.
 }

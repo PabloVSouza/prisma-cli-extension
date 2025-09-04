@@ -307,7 +307,7 @@ export class PrismaEngine {
 
   private setFilePermissions = (filePath: string): void => {
     try {
-      fs.chmodSync(filePath, '755')
+      fs.chmodSync(filePath, 0o755)
     } catch (error) {
       console.warn(`Failed to set permissions for ${filePath}:`, error)
     }

@@ -1,3 +1,4 @@
+/* eslint-env node */
 const js = require('@eslint/js')
 const tseslint = require('@typescript-eslint/eslint-plugin')
 const tsparser = require('@typescript-eslint/parser')

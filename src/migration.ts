@@ -11,7 +11,7 @@ interface Migration {
   logs: string
   rolled_back_at: string | null
   started_at: string
-  applied_steps_count: string
+  applied_steps_count: number
 }
 
 interface PrismaCommandOptions {
@@ -40,7 +40,7 @@ export class PrismaMigration extends PrismaConstants {
   public verifyMigration = async (prisma: PrismaClientProps): Promise<boolean> => {
     try {
       const latest: Migration[] =
-        await prisma.$queryRaw`SELECT * FROM _prisma_migrations ORDER BY finished_at DESC LIMIT 1`
+        await prisma.$queryRaw`SELECT * FROM _prisma_migrations ORDER BY finished_at IS NULL, finished_at DESC LIMIT 1`
 
       if (latest.length === 0) {
         console.log('No migrations found in database')
@@ -101,20 +101,16 @@ export class PrismaMigration extends PrismaConstants {
           silent: false
         })
 
-        child.on('message', (msg) => {
-          console.log('Prisma message:', msg)
-        })
-
         child.on('error', (error) => {
           console.error('Child process error:', error)
           reject(new Error(`Prisma command failed: ${error.message}`))
         })
 
-        child.on('close', (code) => {
+        child.on('close', (code, signal) => {
           const result: PrismaCommandResult = {
-            exitCode: code || 0,
+            exitCode: typeof code === 'number' ? code : 1,
             stdout: stdout.trim(),
-            stderr: stderr.trim()
+            stderr: (stderr + (signal ? `\nterminated by signal: ${signal}` : '')).trim()
           }
           resolve(result)
         })
@@ -128,16 +124,16 @@ export class PrismaMigration extends PrismaConstants {
         child.stderr?.on('data', (data) => {
           const output = data.toString()
           stderr += output
-          console.log('Prisma stderr:', output.trim())
+          console.error('Prisma stderr:', output.trim())
         })
       })
 
       if (result.exitCode !== 0) {
-        throw new Error(
-          `Prisma command "${command.join(' ')}" failed with exit code ${
-            result.exitCode
-          }. Stderr: ${result.stderr}`
+        const err = new Error(
+          `Prisma command "${command.join(' ')}" failed (exit ${result.exitCode})`
         )
+        ;(err as any).result = result
+        throw err
       }
 
       console.log('Prisma command completed successfully')
