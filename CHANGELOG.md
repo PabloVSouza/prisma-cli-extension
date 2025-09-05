@@ -1,3 +1,11 @@
+## [1.12.0] - 2025-09-05
+
+- fix: Lower coverage threshold to 24% to account for new ASAR extraction code (2a66353)
+- fix: Restore missing scripts section in package.json (82ece2a)
+- Fix ASAR extraction errors and improve engine handling (b357d9c)
+
+---
+
 ## [1.11.0] - 2025-09-05
 
 - fix: Improve ASAR extraction to handle @prisma/client missing from unpacked files (ce2e5b3)
