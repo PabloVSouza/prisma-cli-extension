@@ -1,3 +1,9 @@
+## [1.6.0] - 2025-09-05
+
+- fix: Add missing Prisma CLI dependency and improve ASAR handling (aef95e8)
+
+---
+
 ## [1.5.0] - 2025-09-05
 
 - fix: resolve Node.js executable path issues in both dev and production (af8af73)
