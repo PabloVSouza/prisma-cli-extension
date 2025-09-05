@@ -1,3 +1,9 @@
+## [1.9.0] - 2025-09-05
+
+- fix: Improve database creation and migration execution for Prisma v6 (bd05496)
+
+---
+
 ## [1.8.0] - 2025-09-05
 
 - revert: Restore migration.ts to working version 1.0.3 approach (b34f458)
