@@ -1,3 +1,9 @@
+## [1.2.0] - 2025-09-05
+
+- chore: release v1.1.0 (b1e7439)
+
+---
+
 ## [1.1.0] - 2025-09-05
 
 - fix: improve ASAR handling for Prisma CLI extraction (5fd1e21)
