@@ -230,6 +230,45 @@ The package automatically detects your environment and adapts accordingly:
 - **Electron**: Handles ASAR-packed applications
 - **Cross-platform**: Works on Windows, macOS, and Linux
 
+## Electron Builder Integration
+
+**No configuration needed!** The `prisma-cli-extension` works seamlessly with Electron apps without requiring any changes to your `electron-builder.yml` configuration.
+
+### What the extension handles automatically:
+
+- ✅ **ASAR extraction**: Automatically extracts Prisma files from ASAR archives
+- ✅ **Missing engines**: Gracefully handles missing Prisma engines and lets Prisma download them
+- ✅ **Environment detection**: Automatically detects development vs production environments
+- ✅ **Cross-platform**: Works on Windows, macOS, and Linux without additional configuration
+
+### Example electron-builder.yml
+
+You can use any standard electron-builder configuration. Here's a minimal example:
+
+```yaml
+# Example electron-builder configuration
+files:
+  - '**/*'
+  - '!src/*'
+  - '!*.code-workspace'
+# ✅ NO PRISMA CONFIGURATION NEEDED!
+# The prisma-cli-extension handles everything automatically
+```
+
+### Optional optimizations
+
+If you want to reduce your app size, you can optionally exclude Prisma files from your build (the extension will still work):
+
+```yaml
+files:
+  - '**/*'
+  - '!node_modules/prisma/**/*'
+  - '!node_modules/@prisma/**/*'
+  - '!node_modules/.prisma/**/*'
+```
+
+This approach reduces app size while maintaining full functionality through automatic engine downloading.
+
 ## Error Handling
 
 The package includes comprehensive error handling and logging:

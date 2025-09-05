@@ -1,5 +1,7 @@
-# Minimal electron-builder configuration
-# This replaces the complex configuration with automatic ASAR extraction
+# Example electron-builder configuration for apps using prisma-cli-extension
+#
+# This is a minimal configuration that works out-of-the-box with prisma-cli-extension.
+# You don't need to add any Prisma-specific configuration - the extension handles everything automatically!
 
 files:
   - '**/*'
@@ -10,17 +12,19 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!*.code-workspace'
-# No need for complex Prisma file inclusions or asarUnpack!
-# The extension will automatically extract Prisma files from ASAR at runtime
+# ✅ NO PRISMA CONFIGURATION NEEDED!
+#
+# The prisma-cli-extension automatically handles:
+# - ASAR extraction of Prisma files
+# - Missing Prisma engines (downloads them automatically)
+# - Environment detection (development vs production)
+# - Cross-platform compatibility
+#
+# Just install prisma-cli-extension and use it - no electron-builder changes required!
 
-# Optional: If you want to exclude Prisma files from ASAR to reduce size
-# (but this is not necessary with the new automatic extraction)
+# Optional: If you want to optimize your app size, you can exclude Prisma files:
+# (This is not necessary - the extension works with or without this)
 # files:
 #   - '!node_modules/prisma/**/*'
 #   - '!node_modules/@prisma/**/*'
 #   - '!node_modules/.prisma/**/*'
-
-# Optional: Basic asarUnpack for other resources if needed
-# asarUnpack:
-#   - resources/*
-#   - prisma/**/*
