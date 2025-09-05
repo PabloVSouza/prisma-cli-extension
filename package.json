@@ -12,6 +12,26 @@
     "type": "git",
     "url": "git+https://github.com/PabloVSouza/prisma-cli-extension.git"
   },
+  "scripts": {
+    "dev": "ts-node-dev --respawn --transpile-only --ignore-watch node_modules -r tsconfig-paths/register src/entrypoint.ts",
+    "fix-path": "npx tsc-alias tsconfig-build.json",
+    "build": "tsc --project tsconfig.json && npm run fix-path",
+    "lint": "eslint src --ext ts",
+    "lint:fix": "eslint src --ext ts --fix",
+    "tsc": "tsc --noEmit",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "test:coverage": "jest --coverage",
+    "test:ci": "jest --ci --coverage --watchAll=false",
+    "test:debug": "node --inspect-brk node_modules/.bin/jest --runInBand",
+    "clean": "rm -rf dist coverage",
+    "prebuild": "npm run clean",
+    "prepublishOnly": "npm run build && npm run test:ci",
+    "audit": "npm audit --audit-level=moderate",
+    "audit:fix": "npm audit fix",
+    "check": "npm run tsc && npm run lint && npm run test",
+    "prepare": "npm run build"
+  },
   "devDependencies": {
     "@jest/globals": "^30.1.2",
     "@prisma/client": "^6.15.0",
