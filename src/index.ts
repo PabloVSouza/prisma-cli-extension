@@ -37,6 +37,9 @@ export class PrismaInitializer extends PrismaMigration {
 
     if (this.dbUrl.startsWith('file')) await this.prepareDb()
 
+    // Ensure Prisma client is generated before trying to use it
+    await this.ensurePrismaClientGenerated()
+
     const PrismaClientClass = getPrismaClient()
     
     const prismaConfig: Parameters<typeof PrismaClientClass>[0] = {
@@ -158,6 +161,35 @@ export class PrismaInitializer extends PrismaMigration {
     } else {
       // In Node.js, use a standard location
       return path.join(os.homedir(), '.local', 'share', 'your-app-name')
+    }
+  }
+
+  private ensurePrismaClientGenerated = async (): Promise<void> => {
+    try {
+      console.log('Ensuring Prisma client is generated...')
+      
+      // Check if the generated client exists
+      const generatedClientPath = path.join(this.environment.resourcesPath, 'node_modules', '.prisma', 'client')
+      const defaultClientPath = path.join(generatedClientPath, 'default.js')
+      
+      if (fs.existsSync(defaultClientPath)) {
+        console.log('✅ Prisma client already generated')
+        return
+      }
+      
+      console.log('Prisma client not found, generating...')
+      
+      // Run prisma generate to create the client
+      await this.runPrismaCommand({
+        command: ['generate', '--schema', this.schemaPath],
+        dbUrl: this.dbUrl
+      })
+      
+      console.log('✅ Prisma client generated successfully')
+    } catch (error) {
+      console.error('Error generating Prisma client:', error)
+      // Don't throw here - let the system try to continue
+      console.warn('Prisma client generation failed, continuing with available client')
     }
   }
 
