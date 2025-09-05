@@ -1,3 +1,9 @@
+## [1.11.0] - 2025-09-05
+
+- fix: Improve ASAR extraction to handle @prisma/client missing from unpacked files (ce2e5b3)
+
+---
+
 ## [1.10.0] - 2025-09-05
 
 - feat: Add automatic ASAR extraction to eliminate complex electron-builder config (255763b)
