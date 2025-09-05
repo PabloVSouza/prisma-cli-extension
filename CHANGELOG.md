@@ -1,3 +1,9 @@
+## [1.7.0] - 2025-09-05
+
+- fix: Resolve development and production execution issues (ef0fffd)
+
+---
+
 ## [1.6.0] - 2025-09-05
 
 - fix: Add missing Prisma CLI dependency and improve ASAR handling (aef95e8)
