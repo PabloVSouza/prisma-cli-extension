@@ -1,3 +1,9 @@
+## [1.8.0] - 2025-09-05
+
+- revert: Restore migration.ts to working version 1.0.3 approach (b34f458)
+
+---
+
 ## [1.7.0] - 2025-09-05
 
 - fix: Resolve development and production execution issues (ef0fffd)
