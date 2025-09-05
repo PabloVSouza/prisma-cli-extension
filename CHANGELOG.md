@@ -1,3 +1,10 @@
+## [1.14.0] - 2025-09-05
+
+- fix: Lower branches coverage threshold to 23% for new code (f943a9a)
+- fix: Don't set PRISMA_QUERY_ENGINE_LIBRARY for generate command (4e30a59)
+
+---
+
 ## [1.13.0] - 2025-09-05
 
 - fix: Add automatic Prisma client generation for production apps (f0b132c)
