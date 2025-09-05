@@ -1,3 +1,9 @@
+## [1.4.0] - 2025-09-05
+
+- fix: resolve development and production migration issues (e198d9c)
+
+---
+
 ## [1.3.0] - 2025-09-05
 
 - fix: lower Jest coverage threshold to match current coverage (d02bb90)
