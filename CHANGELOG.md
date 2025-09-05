@@ -1,3 +1,9 @@
+## [1.10.0] - 2025-09-05
+
+- feat: Add automatic ASAR extraction to eliminate complex electron-builder config (255763b)
+
+---
+
 ## [1.9.0] - 2025-09-05
 
 - fix: Improve database creation and migration execution for Prisma v6 (bd05496)
