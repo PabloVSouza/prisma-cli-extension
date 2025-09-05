@@ -607,12 +607,12 @@ export class PrismaEngine {
   }
 
   private updatePathsForAsar = (): void => {
-    this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
-    this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
+      this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
+      this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
   }
 
   private extractPrismaFiles = (files: string[]): void => {
-    for (const file of files) {
+      for (const file of files) {
       try {
         const finalPath = path.join(this.backPath, '..', file)
         const extractedPath = this.extractFile(finalPath)
@@ -640,16 +640,16 @@ export class PrismaEngine {
         return undefined
       }
 
-      const dirList = fs.readdirSync(initialPath)
+    const dirList = fs.readdirSync(initialPath)
 
       for (const item of dirList) {
-        const folder = path.join(initialPath, item)
+      const folder = path.join(initialPath, item)
 
         try {
-          if (fs.lstatSync(folder).isDirectory()) {
+      if (fs.lstatSync(folder).isDirectory()) {
             const inside = fs.readdirSync(folder)
 
-            if (inside.includes('prisma')) {
+        if (inside.includes('prisma')) {
               const prismaPath = path.join(folder, 'prisma')
 
               if (
@@ -719,9 +719,9 @@ export class PrismaEngine {
     // If not extracted, try the original path
     if (enginePath.includes('app.asar')) {
       try {
-        const finalFilePath = this.extractFile(path.join(enginePath, fileName))
+      const finalFilePath = this.extractFile(path.join(enginePath, fileName))
         if (finalFilePath && fs.existsSync(finalFilePath)) {
-          return finalFilePath
+      return finalFilePath
         } else {
           console.warn(`Engine not found in ASAR: ${fileName}`)
           // Don't return empty string - let Prisma handle missing engines
@@ -754,8 +754,8 @@ export class PrismaEngine {
   }
 
   private getBinaryTarget = (platform: string): string => {
-    if (platform === 'darwin') return 'darwin, darwin-arm64'
-    if (platform === 'linux') return 'linux, linux-arm64'
+    if (platform === 'darwin') return 'darwin,darwin-arm64'
+    if (platform === 'linux') return 'linux,linux-arm64'
     return platform
   }
 
