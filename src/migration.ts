@@ -1,4 +1,4 @@
-import { fork } from 'child_process'
+import { fork, spawn } from 'child_process'
 import fs from 'fs'
 import path from 'path'
 import { PrismaConstants } from './constants'
@@ -173,6 +173,46 @@ export class PrismaMigration extends PrismaConstants {
     }
   }
 
+  private getNodeExecutablePath = (): string => {
+    try {
+      // First, try to use the current process's Node.js executable
+      // This is the most reliable method
+      if (process.execPath && fs.existsSync(process.execPath)) {
+        console.log(`Using current Node.js executable: ${process.execPath}`)
+        return process.execPath
+      }
+
+      // Try to find Node.js in common locations
+      const possiblePaths = [
+        '/usr/local/bin/node',
+        '/usr/bin/node',
+        '/opt/homebrew/bin/node',
+        '/opt/local/bin/node',
+        '/usr/local/bin/nodejs',
+        '/usr/bin/nodejs'
+      ]
+
+      for (const nodePath of possiblePaths) {
+        try {
+          if (fs.existsSync(nodePath)) {
+            console.log(`Found Node.js at: ${nodePath}`)
+            return nodePath
+          }
+        } catch {
+          // Continue to next path
+          continue
+        }
+      }
+
+      // If no path found, try using 'node' from PATH
+      console.log('Using Node.js from PATH')
+      return 'node'
+    } catch (error) {
+      console.error('Error finding Node.js executable:', error)
+      return 'node'
+    }
+  }
+
   private parseDatabaseUrlFromString = (dbUrl: string): string | null => {
     try {
       const url = new URL(dbUrl)
@@ -214,7 +254,8 @@ export class PrismaMigration extends PrismaConstants {
         
         if (isNodeJsFile) {
           // Use Node.js directly, not Electron's Node.js
-          executablePath = 'node'
+          // Find the correct Node.js executable path
+          executablePath = this.getNodeExecutablePath()
           args = [prismaPath, ...command]
         } else {
           executablePath = prismaPath
@@ -223,18 +264,31 @@ export class PrismaMigration extends PrismaConstants {
 
         console.log(`Executing: ${executablePath} ${args.join(' ')}`)
 
-        const child = fork(executablePath, args, {
-          env: {
-            ...process.env,
-            DATABASE_URL: dbUrl,
-            PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-            PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
-            PRISMA_FMT_BINARY: this.qePath,
-            PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath
-          },
-          stdio: 'pipe',
-          silent: false
-        })
+        // Use spawn for Node.js execution, fork for direct executable
+        const child = isNodeJsFile 
+          ? spawn(executablePath, args, {
+              env: {
+                ...process.env,
+                DATABASE_URL: dbUrl,
+                PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
+                PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
+                PRISMA_FMT_BINARY: this.qePath,
+                PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath
+              },
+              stdio: 'pipe'
+            })
+          : fork(executablePath, args, {
+              env: {
+                ...process.env,
+                DATABASE_URL: dbUrl,
+                PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
+                PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
+                PRISMA_FMT_BINARY: this.qePath,
+                PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath
+              },
+              stdio: 'pipe',
+              silent: false
+            })
 
         child.on('error', (error) => {
           console.error('Child process error:', error)
