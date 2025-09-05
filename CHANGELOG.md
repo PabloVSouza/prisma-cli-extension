@@ -1,6 +1,6 @@
-## [1.1.0] - 2025-09-04
+## [1.1.0] - 2025-09-05
 
-
+- fix: improve ASAR handling for Prisma CLI extraction (5fd1e21)
 
 ---
 

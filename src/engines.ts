@@ -56,10 +56,11 @@ export class PrismaEngine {
     const isDevelopment = process.env.NODE_ENV === 'development' || process.env.NODE_ENV === 'dev'
     const isProduction = process.env.NODE_ENV === 'production' || process.env.NODE_ENV === 'prod'
 
-    // Detect ASAR environment
+    // Detect ASAR environment - improved detection
     const isAsar =
       __dirname.includes('asar') ||
       (process as NodeJS.Process & { resourcesPath?: string }).resourcesPath?.includes('asar') ||
+      process.execPath.includes('asar') ||
       false
 
     // Determine app paths based on environment
@@ -222,6 +223,11 @@ export class PrismaEngine {
               'node_modules',
               '.bin',
               'prisma'
+            ),
+            path.join(
+              this.environment.resourcesPath,
+              'temp',
+              'prisma-cli.js'
             )
           ]
         : [])
@@ -241,20 +247,29 @@ export class PrismaEngine {
   }
 
   private isAsarEnvironment = (): boolean => {
-    return this.prismaPath.includes('asar') || this.schemaPath.includes('asar')
+    return this.environment.isAsar || 
+           this.prismaPath.includes('asar') || 
+           this.schemaPath.includes('asar') ||
+           __dirname.includes('asar')
   }
 
   private handleAsarExtraction = (): void => {
     try {
-      const asarLocation = this.getAsarLocation()
-      if (!asarLocation) {
-        console.warn('Could not determine ASAR location')
-        return
+      console.log('Handling ASAR extraction for Prisma CLI...')
+      
+      // First, try to extract the Prisma CLI binary
+      const extractedPrismaPath = this.extractPrismaCli()
+      if (extractedPrismaPath) {
+        this.prismaPath = extractedPrismaPath
+        console.log(`Updated Prisma CLI path to: ${this.prismaPath}`)
       }
 
-      const prismaFiles = this.getPrismaFilesFromAsar(asarLocation)
-      this.updatePathsForAsar()
-      this.extractPrismaFiles(prismaFiles)
+      // Then handle other Prisma files if needed
+      const asarLocation = this.getAsarLocation()
+      if (asarLocation) {
+        const prismaFiles = this.getPrismaFilesFromAsar(asarLocation)
+        this.extractPrismaFiles(prismaFiles)
+      }
     } catch (error) {
       console.error('Error handling ASAR extraction:', error)
       throw new Error(
@@ -262,6 +277,83 @@ export class PrismaEngine {
           error instanceof Error ? error.message : 'Unknown error'
         }`
       )
+    }
+  }
+
+  private extractPrismaCli = (): string | null => {
+    try {
+      // Try to find the Prisma CLI in the ASAR archive
+      const possibleAsarPaths = [
+        path.join(this.environment.resourcesPath, 'app.asar'),
+        path.join(this.environment.resourcesPath, 'app.asar.unpacked'),
+        path.join(this.environment.appPath, 'app.asar'),
+        path.join(this.environment.appPath, 'app.asar.unpacked')
+      ]
+
+      for (const asarPath of possibleAsarPaths) {
+        if (fs.existsSync(asarPath)) {
+          console.log(`Checking ASAR at: ${asarPath}`)
+          
+          // Try to extract Prisma CLI from this ASAR
+          const extractedPath = this.extractPrismaCliFromAsar(asarPath)
+          if (extractedPath) {
+            return extractedPath
+          }
+        }
+      }
+
+      // Fallback: try to extract from the current prismaPath if it contains asar
+      if (this.prismaPath.includes('asar')) {
+        return this.extractFile(this.prismaPath)
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error extracting Prisma CLI:', error)
+      return null
+    }
+  }
+
+  private extractPrismaCliFromAsar = (asarPath: string): string | null => {
+    try {
+      const allFiles = asar.listPackage(asarPath, { isPack: false })
+      const prismaCliFiles = allFiles.filter(file => 
+        file.includes('prisma') && 
+        (file.endsWith('index.js') || file.endsWith('prisma')) &&
+        !file.includes('prisma-packaged')
+      )
+
+      if (prismaCliFiles.length === 0) {
+        console.log('No Prisma CLI files found in ASAR')
+        return null
+      }
+
+      // Find the main Prisma CLI file
+      const mainCliFile = prismaCliFiles.find(file => 
+        file.includes('build/index.js') || file.includes('prisma/build/index.js')
+      ) || prismaCliFiles[0]
+
+      console.log(`Found Prisma CLI file: ${mainCliFile}`)
+
+      // Extract to a temporary location
+      const tempDir = path.join(this.environment.resourcesPath, 'temp')
+      CreateDirectory(tempDir)
+      
+      const extractedPath = path.join(tempDir, 'prisma-cli.js')
+      
+      // Extract the file
+      const fileData = asar.extractFile(asarPath, mainCliFile)
+      if (fileData && fileData.length > 0) {
+        fs.writeFileSync(extractedPath, fileData)
+        fs.chmodSync(extractedPath, 0o755)
+        console.log(`Extracted Prisma CLI to: ${extractedPath}`)
+        return extractedPath
+      }
+
+      return null
+    } catch (error) {
+      console.error('Error extracting Prisma CLI from ASAR:', error)
+      return null
     }
   }
 
