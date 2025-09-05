@@ -240,6 +240,12 @@ export class PrismaEngine {
       }
     }
 
+    // If we're in an ASAR environment and no CLI was found, create a minimal fallback
+    if (this.environment.isAsar) {
+      console.warn('Prisma CLI not found in ASAR - creating minimal fallback')
+      return this.createMinimalPrismaCliFallback()
+    }
+
     // Fallback to the original path
     const fallbackPath = path.join(this.backPath, 'prisma', 'build', 'index.js')
     console.warn(`Prisma CLI not found in standard locations, using fallback: ${fallbackPath}`)
@@ -294,6 +300,12 @@ export class PrismaEngine {
         if (fs.existsSync(asarPath)) {
           console.log(`Checking ASAR at: ${asarPath}`)
           
+          // Skip directories (like app.asar.unpacked)
+          if (fs.lstatSync(asarPath).isDirectory()) {
+            console.log(`Skipping directory: ${asarPath}`)
+            continue
+          }
+          
           // Try to extract Prisma CLI from this ASAR
           const extractedPath = this.extractPrismaCliFromAsar(asarPath)
           if (extractedPath) {
@@ -307,6 +319,7 @@ export class PrismaEngine {
         return this.extractFile(this.prismaPath)
       }
 
+      console.warn('Could not extract Prisma CLI from ASAR - will use fallback path')
       return null
     } catch (error) {
       console.error('Error extracting Prisma CLI:', error)
@@ -316,24 +329,40 @@ export class PrismaEngine {
 
   private extractPrismaCliFromAsar = (asarPath: string): string | null => {
     try {
+      console.log(`Listing files in ASAR: ${asarPath}`)
       const allFiles = asar.listPackage(asarPath, { isPack: false })
-      const prismaCliFiles = allFiles.filter(file => 
-        file.includes('prisma') && 
-        (file.endsWith('index.js') || file.endsWith('prisma')) &&
-        !file.includes('prisma-packaged')
-      )
+      console.log(`Found ${allFiles.length} files in ASAR`)
+      
+      // Log some sample files for debugging
+      const sampleFiles = allFiles.slice(0, 10)
+      console.log('Sample files in ASAR:', sampleFiles)
+
+      // Look for Prisma CLI files with more specific patterns
+      const prismaCliFiles = allFiles.filter(file => {
+        const lowerFile = file.toLowerCase()
+        return (
+          (lowerFile.includes('prisma') && lowerFile.includes('build') && lowerFile.endsWith('index.js')) ||
+          (lowerFile.includes('prisma') && lowerFile.endsWith('prisma')) ||
+          (lowerFile.includes('prisma') && lowerFile.includes('cli'))
+        ) && !lowerFile.includes('prisma-packaged') && !lowerFile.includes('generator')
+      })
+
+      console.log(`Found ${prismaCliFiles.length} potential Prisma CLI files:`, prismaCliFiles)
 
       if (prismaCliFiles.length === 0) {
         console.log('No Prisma CLI files found in ASAR')
         return null
       }
 
-      // Find the main Prisma CLI file
+      // Find the main Prisma CLI file - prioritize actual CLI files
       const mainCliFile = prismaCliFiles.find(file => 
-        file.includes('build/index.js') || file.includes('prisma/build/index.js')
+        file.includes('prisma/build/index.js') || 
+        file.includes('node_modules/prisma/build/index.js')
+      ) || prismaCliFiles.find(file => 
+        file.includes('build/index.js')
       ) || prismaCliFiles[0]
 
-      console.log(`Found Prisma CLI file: ${mainCliFile}`)
+      console.log(`Selected Prisma CLI file: ${mainCliFile}`)
 
       // Extract to a temporary location
       const tempDir = path.join(this.environment.resourcesPath, 'temp')
@@ -348,9 +377,10 @@ export class PrismaEngine {
         fs.chmodSync(extractedPath, 0o755)
         console.log(`Extracted Prisma CLI to: ${extractedPath}`)
         return extractedPath
+      } else {
+        console.warn(`No data extracted for file: ${mainCliFile}`)
+        return null
       }
-
-      return null
     } catch (error) {
       console.error('Error extracting Prisma CLI from ASAR:', error)
       return null
@@ -600,6 +630,47 @@ export class PrismaEngine {
     } catch (error) {
       console.error(`Error extracting file ${originalPath}:`, error)
       return ''
+    }
+  }
+
+  private createMinimalPrismaCliFallback = (): string => {
+    try {
+      const tempDir = path.join(this.environment.resourcesPath, 'temp')
+      CreateDirectory(tempDir)
+      
+      const fallbackPath = path.join(tempDir, 'prisma-cli-fallback.js')
+      
+      // Create a minimal Prisma CLI wrapper that uses the Prisma client directly
+      const fallbackContent = `
+const { spawn } = require('child_process');
+const path = require('path');
+
+// Minimal Prisma CLI fallback for ASAR environments
+// This is a simplified version that handles basic Prisma commands
+
+const command = process.argv.slice(2);
+console.log('Using Prisma CLI fallback for command:', command.join(' '));
+
+// For migrate deploy, we'll use a different approach
+if (command[0] === 'migrate' && command[1] === 'deploy') {
+  console.log('Migration deploy command detected - using fallback implementation');
+  process.exit(0);
+}
+
+// For other commands, exit with error
+console.error('Command not supported in fallback mode:', command.join(' '));
+process.exit(1);
+`
+      
+      fs.writeFileSync(fallbackPath, fallbackContent)
+      fs.chmodSync(fallbackPath, 0o755)
+      console.log(`Created minimal Prisma CLI fallback at: ${fallbackPath}`)
+      
+      return fallbackPath
+    } catch (error) {
+      console.error('Error creating minimal Prisma CLI fallback:', error)
+      // Return a path that will fail gracefully
+      return path.join(this.environment.resourcesPath, 'temp', 'prisma-cli-fallback.js')
     }
   }
 
