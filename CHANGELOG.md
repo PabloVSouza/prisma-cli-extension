@@ -1,3 +1,9 @@
+## [1.13.0] - 2025-09-05
+
+- fix: Add automatic Prisma client generation for production apps (f0b132c)
+
+---
+
 ## [1.12.0] - 2025-09-05
 
 - fix: Lower coverage threshold to 24% to account for new ASAR extraction code (2a66353)
