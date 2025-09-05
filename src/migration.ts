@@ -96,16 +96,20 @@ export class PrismaMigration extends PrismaConstants {
         let stderr = ''
 
         // Prepare environment variables for Prisma v6
-        const env = {
+        const env: Record<string, string> = {
           ...process.env,
           DATABASE_URL: dbUrl,
           PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-          PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
           PRISMA_FMT_BINARY: this.qePath,
           PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath,
           // Prisma v6 specific environment variables
           PRISMA_CLI_BINARY_TARGETS: this.binaryTarget,
           PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
+        }
+
+        // Only set PRISMA_QUERY_ENGINE_LIBRARY for commands that need it (not for generate)
+        if (!command.includes('generate')) {
+          env.PRISMA_QUERY_ENGINE_LIBRARY = this.qePath
         }
 
         console.log(`Executing: ${prismaPath} ${command.join(' ')}`)
