@@ -1,3 +1,10 @@
+## [1.3.0] - 2025-09-05
+
+- fix: lower Jest coverage threshold to match current coverage (d02bb90)
+- fix: improve ASAR debugging and add fallback mechanisms (9c38922)
+
+---
+
 ## [1.2.0] - 2025-09-05
 
 - chore: release v1.1.0 (b1e7439)
