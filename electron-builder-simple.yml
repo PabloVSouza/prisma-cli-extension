@@ -10,7 +10,6 @@ files:
   - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
   - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
   - '!*.code-workspace'
-
 # No need for complex Prisma file inclusions or asarUnpack!
 # The extension will automatically extract Prisma files from ASAR at runtime
 

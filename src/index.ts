@@ -7,24 +7,39 @@ import CreateDirectory from 'utils/CreateDirectory'
 import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 import { PrismaMigration } from './migration'
 
-let PrismaClient: PrismaClientProps
+// Lazy load PrismaClient to handle ASAR extraction timing
+let PrismaClient: PrismaClientProps | null = null
 
-try {
-  // Dynamically require the module
-  PrismaClient = require('@prisma/client').PrismaClient
-} catch {
-  throw new Error(
-    "@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project."
-  )
+const getPrismaClient = (): PrismaClientProps => {
+  if (!PrismaClient) {
+    try {
+      // Dynamically require the module
+      PrismaClient = require('@prisma/client').PrismaClient
+    } catch (error) {
+      throw new Error(
+        `@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project. Error: ${error}`
+      )
+    }
+  }
+  return PrismaClient
 }
 
 export class PrismaInitializer extends PrismaMigration {
   public prisma: PrismaClientProps
 
   public initializePrisma = async () => {
+    // Ensure ASAR extraction happens first
+    if (this.isAsarEnvironment()) {
+      console.log('ASAR environment detected, ensuring Prisma files are extracted...')
+      this.handleAsarExtraction()
+      this.ensureModuleResolution()
+    }
+
     if (this.dbUrl.startsWith('file')) await this.prepareDb()
 
-    const prismaConfig: Parameters<typeof PrismaClient>[0] = {
+    const PrismaClientClass = getPrismaClient()
+    
+    const prismaConfig: Parameters<typeof PrismaClientClass>[0] = {
       datasources: {
         db: {
           url: this.dbUrl
@@ -41,7 +56,7 @@ export class PrismaInitializer extends PrismaMigration {
       }
     }
 
-    this.prisma = new PrismaClient(prismaConfig)
+    this.prisma = new PrismaClientClass(prismaConfig)
   }
 
   private prepareDb = async (): Promise<void> => {

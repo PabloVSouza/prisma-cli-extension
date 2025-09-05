@@ -256,14 +256,42 @@ export class PrismaEngine {
     return fallbackPath
   }
 
-  private isAsarEnvironment = (): boolean => {
+  public isAsarEnvironment = (): boolean => {
     return this.environment.isAsar || 
            this.prismaPath.includes('asar') || 
            this.schemaPath.includes('asar') ||
            __dirname.includes('asar')
   }
 
-  private handleAsarExtraction = (): void => {
+  public ensureModuleResolution = (): void => {
+    if (this.isAsarEnvironment()) {
+      // Add the unpacked directory to module resolution paths
+      const unpackedDir = path.join(this.environment.resourcesPath, 'app.asar.unpacked')
+      const directDir = path.join(this.environment.resourcesPath, 'node_modules')
+      
+      // Check if @prisma/client exists in unpacked location
+      const prismaClientUnpacked = path.join(unpackedDir, 'node_modules', '@prisma', 'client')
+      const prismaClientDirect = path.join(directDir, 'node_modules', '@prisma', 'client')
+      
+      if (fs.existsSync(prismaClientUnpacked)) {
+        console.log('✅ @prisma/client found in unpacked location')
+        // Add to module resolution if needed
+        if (!require.main?.paths.includes(unpackedDir)) {
+          require.main?.paths.unshift(unpackedDir)
+        }
+      } else if (fs.existsSync(prismaClientDirect)) {
+        console.log('✅ @prisma/client found in direct location')
+        // Add to module resolution if needed
+        if (!require.main?.paths.includes(directDir)) {
+          require.main?.paths.unshift(directDir)
+        }
+      } else {
+        console.warn('⚠️ @prisma/client not found in any expected location')
+      }
+    }
+  }
+
+  public handleAsarExtraction = (): void => {
     try {
       console.log('Handling ASAR extraction for Prisma files...')
       
@@ -309,10 +337,24 @@ export class PrismaEngine {
       
       console.log(`Found ${prismaFiles.length} Prisma-related files to extract`)
       
+      // Log some sample files for debugging
+      const sampleFiles = prismaFiles.slice(0, 10)
+      console.log('Sample Prisma files in ASAR:', sampleFiles)
+      
+      // Determine the best extraction location
+      const unpackedDir = path.join(this.environment.resourcesPath, 'app.asar.unpacked')
+      const directDir = path.join(this.environment.resourcesPath, 'node_modules')
+      
+      // Prefer app.asar.unpacked if it exists, otherwise use direct extraction
+      const extractionBase = fs.existsSync(unpackedDir) ? unpackedDir : directDir
+      console.log(`Using extraction base: ${extractionBase}`)
+      
       // Extract each Prisma file
       for (const file of prismaFiles) {
         try {
-          const targetPath = path.join(this.environment.resourcesPath, file)
+          // Remove the leading slash and node_modules/ prefix for extraction
+          const relativePath = file.startsWith('/node_modules/') ? file.substring(1) : file
+          const targetPath = path.join(extractionBase, relativePath)
           const targetDir = path.dirname(targetPath)
           
           // Create directory if it doesn't exist
@@ -335,11 +377,20 @@ export class PrismaEngine {
               fs.chmodSync(targetPath, 0o755)
             }
             
-            console.log(`Extracted: ${file}`)
+            console.log(`Extracted: ${file} -> ${targetPath}`)
           }
         } catch (error) {
           console.warn(`Failed to extract ${file}:`, error)
         }
+      }
+      
+      // Verify @prisma/client was extracted
+      const prismaClientPath = path.join(extractionBase, 'node_modules', '@prisma', 'client')
+      if (fs.existsSync(prismaClientPath)) {
+        console.log('✅ @prisma/client successfully extracted')
+      } else {
+        console.warn('⚠️ @prisma/client not found in extracted files')
+        console.log(`Checked path: ${prismaClientPath}`)
       }
       
       console.log('Prisma files extraction completed')

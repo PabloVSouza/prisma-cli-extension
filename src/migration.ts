@@ -25,15 +25,21 @@ interface PrismaCommandResult {
   stderr: string
 }
 
-let _PrismaClient: PrismaClientProps
+// Lazy load PrismaClient to handle ASAR extraction timing
+let _PrismaClient: PrismaClientProps | null = null
 
-try {
-  // Dynamically require the module
-  _PrismaClient = require('@prisma/client').PrismaClient
-} catch {
-  throw new Error(
-    "@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project."
-  )
+const getPrismaClient = (): PrismaClientProps => {
+  if (!_PrismaClient) {
+    try {
+      // Dynamically require the module
+      _PrismaClient = require('@prisma/client').PrismaClient
+    } catch (error) {
+      throw new Error(
+        `@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project. Error: ${error}`
+      )
+    }
+  }
+  return _PrismaClient
 }
 
 export class PrismaMigration extends PrismaConstants {
