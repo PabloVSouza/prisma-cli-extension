@@ -175,36 +175,42 @@ export class PrismaMigration extends PrismaConstants {
 
   private getNodeExecutablePath = (): string => {
     try {
-      // First, try to use the current process's Node.js executable
-      // This is the most reliable method
+      // In development, avoid using Electron's Node.js
+      if (this.environment.isDevelopment) {
+        // Try to find system Node.js in common locations
+        const possiblePaths = [
+          '/usr/local/bin/node',
+          '/usr/bin/node',
+          '/opt/homebrew/bin/node',
+          '/opt/local/bin/node',
+          '/usr/local/bin/nodejs',
+          '/usr/bin/nodejs'
+        ]
+
+        for (const nodePath of possiblePaths) {
+          try {
+            if (fs.existsSync(nodePath)) {
+              console.log(`Found system Node.js at: ${nodePath}`)
+              return nodePath
+            }
+          } catch {
+            // Continue to next path
+            continue
+          }
+        }
+
+        // If no system Node.js found, use 'node' from PATH
+        console.log('Using Node.js from PATH')
+        return 'node'
+      }
+
+      // In production/ASAR, use the current process's Node.js executable
       if (process.execPath && fs.existsSync(process.execPath)) {
         console.log(`Using current Node.js executable: ${process.execPath}`)
         return process.execPath
       }
 
-      // Try to find Node.js in common locations
-      const possiblePaths = [
-        '/usr/local/bin/node',
-        '/usr/bin/node',
-        '/opt/homebrew/bin/node',
-        '/opt/local/bin/node',
-        '/usr/local/bin/nodejs',
-        '/usr/bin/nodejs'
-      ]
-
-      for (const nodePath of possiblePaths) {
-        try {
-          if (fs.existsSync(nodePath)) {
-            console.log(`Found Node.js at: ${nodePath}`)
-            return nodePath
-          }
-        } catch {
-          // Continue to next path
-          continue
-        }
-      }
-
-      // If no path found, try using 'node' from PATH
+      // Fallback to 'node' from PATH
       console.log('Using Node.js from PATH')
       return 'node'
     } catch (error) {
@@ -232,6 +238,16 @@ export class PrismaMigration extends PrismaConstants {
 
     if (!fs.existsSync(prismaPath)) {
       throw new Error(`Prisma CLI not found at: ${prismaPath}`)
+    }
+
+    // Prevent recursive execution - if we're already running inside a Prisma CLI process
+    if (process.env.PRISMA_CLI_EXECUTING === 'true') {
+      console.log('Already executing Prisma CLI, skipping to prevent recursion')
+      return {
+        exitCode: 0,
+        stdout: 'Migration already in progress',
+        stderr: ''
+      }
     }
 
     console.log(`Running Prisma command: ${command.join(' ')}`)
@@ -265,27 +281,30 @@ export class PrismaMigration extends PrismaConstants {
         console.log(`Executing: ${executablePath} ${args.join(' ')}`)
 
         // Use spawn for Node.js execution, fork for direct executable
+        // Prepare environment variables, only set if paths exist
+        const envVars: { [key: string]: string } = {
+          ...process.env,
+          DATABASE_URL: dbUrl,
+          PRISMA_CLI_EXECUTING: 'true'
+        }
+        
+        if (this.sePath) {
+          envVars.PRISMA_SCHEMA_ENGINE_BINARY = this.sePath
+          envVars.PRISMA_INTROSPECTION_ENGINE_BINARY = this.sePath
+        }
+        
+        if (this.qePath) {
+          envVars.PRISMA_QUERY_ENGINE_LIBRARY = this.qePath
+          envVars.PRISMA_FMT_BINARY = this.qePath
+        }
+
         const child = isNodeJsFile 
           ? spawn(executablePath, args, {
-              env: {
-                ...process.env,
-                DATABASE_URL: dbUrl,
-                PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-                PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
-                PRISMA_FMT_BINARY: this.qePath,
-                PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath
-              },
+              env: envVars,
               stdio: 'pipe'
             })
           : fork(executablePath, args, {
-              env: {
-                ...process.env,
-                DATABASE_URL: dbUrl,
-                PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-                PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
-                PRISMA_FMT_BINARY: this.qePath,
-                PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath
-              },
+              env: envVars,
               stdio: 'pipe',
               silent: false
             })

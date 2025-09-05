@@ -493,8 +493,18 @@ export class PrismaEngine {
 
   private getEnginePath = (enginePath: string, fileName: string): string => {
     if (enginePath.includes('app.asar')) {
-      const finalFilePath = this.extractFile(path.join(enginePath, fileName))
-      return finalFilePath
+      try {
+        const finalFilePath = this.extractFile(path.join(enginePath, fileName))
+        if (finalFilePath && fs.existsSync(finalFilePath)) {
+          return finalFilePath
+        } else {
+          console.warn(`Schema engine not found in ASAR: ${fileName}`)
+          return ''
+        }
+      } catch (error) {
+        console.warn(`Failed to extract schema engine ${fileName}:`, error)
+        return ''
+      }
     }
     return path.join(enginePath, fileName)
   }
