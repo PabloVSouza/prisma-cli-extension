@@ -82,20 +82,31 @@ export class PrismaMigration extends PrismaConstants {
     }
 
     console.log(`Running Prisma command: ${command.join(' ')}`)
+    console.log(`Using Prisma CLI at: ${prismaPath}`)
+    console.log(`Schema path: ${this.schemaPath}`)
+    console.log(`Query engine path: ${this.qePath}`)
+    console.log(`Schema engine path: ${this.sePath}`)
 
     try {
       const result = await new Promise<PrismaCommandResult>((resolve, reject) => {
         let stdout = ''
         let stderr = ''
 
-        const child = fork(prismaPath, command, {
+        // Determine if we need to use Node.js to execute the Prisma CLI
+        const isNodeJsFile = prismaPath.endsWith('.js')
+        const executablePath = isNodeJsFile ? process.execPath : prismaPath
+        const args = isNodeJsFile ? [prismaPath, ...command] : command
+
+        console.log(`Executing: ${executablePath} ${args.join(' ')}`)
+
+        const child = fork(executablePath, args, {
           env: {
             ...process.env,
             DATABASE_URL: dbUrl,
             PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
             PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
             PRISMA_FMT_BINARY: this.qePath,
-            PRISMA_INTROSPECTION_ENGINE_BINARY: this.qePath
+            PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath
           },
           stdio: 'pipe',
           silent: false
@@ -132,7 +143,7 @@ export class PrismaMigration extends PrismaConstants {
         const err = new Error(
           `Prisma command "${command.join(' ')}" failed (exit ${result.exitCode})`
         )
-        ;(err as any).result = result
+        ;(err as Error & { result?: PrismaCommandResult }).result = result
         throw err
       }
 
