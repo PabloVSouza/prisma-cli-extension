@@ -1,3 +1,9 @@
+## [1.5.0] - 2025-09-05
+
+- fix: resolve Node.js executable path issues in both dev and production (af8af73)
+
+---
+
 ## [1.4.0] - 2025-09-05
 
 - fix: resolve development and production migration issues (e198d9c)
