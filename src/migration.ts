@@ -69,10 +69,21 @@ export class PrismaMigration extends PrismaConstants {
   }
 
   public runMigration = async (): Promise<void> => {
-    await this.runPrismaCommand({
-      command: ['migrate', 'deploy', '--schema', this.schemaPath],
-      dbUrl: this.dbUrl
-    })
+    try {
+      console.log('Starting migration process...')
+      console.log(`Schema path: ${this.schemaPath}`)
+      console.log(`Database URL: ${this.dbUrl}`)
+      
+      await this.runPrismaCommand({
+        command: ['migrate', 'deploy', '--schema', this.schemaPath],
+        dbUrl: this.dbUrl
+      })
+      
+      console.log('Migration completed successfully')
+    } catch (error) {
+      console.error('Migration failed:', error)
+      throw error
+    }
   }
 
   public runPrismaCommand = async (options: PrismaCommandOptions): Promise<PrismaCommandResult> => {
@@ -84,21 +95,33 @@ export class PrismaMigration extends PrismaConstants {
     }
 
     console.log(`Running Prisma command: ${command.join(' ')}`)
+    console.log(`Using Prisma CLI at: ${prismaPath}`)
+    console.log(`Schema path: ${this.schemaPath}`)
+    console.log(`Query engine path: ${this.qePath}`)
+    console.log(`Schema engine path: ${this.sePath}`)
 
     try {
       const result = await new Promise<PrismaCommandResult>((resolve, reject) => {
         let stdout = ''
         let stderr = ''
 
+        // Prepare environment variables for Prisma v6
+        const env = {
+          ...process.env,
+          DATABASE_URL: dbUrl,
+          PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
+          PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
+          PRISMA_FMT_BINARY: this.qePath,
+          PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath,
+          // Prisma v6 specific environment variables
+          PRISMA_CLI_BINARY_TARGETS: this.binaryTarget,
+          PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
+        }
+
+        console.log(`Executing: ${prismaPath} ${command.join(' ')}`)
+
         const child = fork(prismaPath, command, {
-          env: {
-            ...process.env,
-            DATABASE_URL: dbUrl,
-            PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-            PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
-            PRISMA_FMT_BINARY: this.qePath,
-            PRISMA_INTROSPECTION_ENGINE_BINARY: this.qePath
-          },
+          env,
           stdio: 'pipe',
           silent: false
         })
@@ -112,12 +135,17 @@ export class PrismaMigration extends PrismaConstants {
           reject(new Error(`Prisma command failed: ${error.message}`))
         })
 
-        child.on('close', (code) => {
+        child.on('close', (code, signal) => {
           const result: PrismaCommandResult = {
             exitCode: code || 0,
             stdout: stdout.trim(),
             stderr: stderr.trim()
           }
+          
+          if (signal) {
+            result.stderr += `\nProcess terminated by signal: ${signal}`
+          }
+          
           resolve(result)
         })
 
@@ -135,11 +163,17 @@ export class PrismaMigration extends PrismaConstants {
       })
 
       if (result.exitCode !== 0) {
-        throw new Error(
-          `Prisma command "${command.join(' ')}" failed with exit code ${
-            result.exitCode
-          }. Stderr: ${result.stderr}`
-        )
+        const errorMessage = `Prisma command "${command.join(' ')}" failed with exit code ${result.exitCode}`
+        const fullError = result.stderr ? `${errorMessage}. Stderr: ${result.stderr}` : errorMessage
+        
+        console.error('Prisma command failed:', {
+          command: command.join(' '),
+          exitCode: result.exitCode,
+          stdout: result.stdout,
+          stderr: result.stderr
+        })
+        
+        throw new Error(fullError)
       }
 
       console.log('Prisma command completed successfully')

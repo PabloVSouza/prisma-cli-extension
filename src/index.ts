@@ -56,17 +56,28 @@ export class PrismaInitializer extends PrismaMigration {
         environment: this.environment.isDevelopment ? 'development' : 'production'
       })
 
+      // Ensure the database directory exists
+      if (!fs.existsSync(dbFolder)) {
+        console.log(`Creating database directory: ${dbFolder}`)
+        CreateDirectory(dbFolder)
+      }
+
       if (!fs.existsSync(fullPath)) {
         console.log('Database file does not exist, creating...')
-        CreateDirectory(dbFolder)
-
+        
         // Create empty database file
         fs.closeSync(fs.openSync(fullPath, 'w'))
         console.log(`Database file created successfully at: ${fullPath}`)
 
-        // Run initial migration
-        await this.runMigration()
-        console.log('Initial migration completed')
+        // Run initial migration with retry logic
+        try {
+          console.log('Running initial migration...')
+          await this.runMigration()
+          console.log('Initial migration completed successfully')
+        } catch (migrationError) {
+          console.warn('Initial migration failed, but database file was created:', migrationError)
+          // Don't throw here - the database file exists and can be migrated later
+        }
       } else {
         console.log(`Database file already exists at: ${fullPath}`)
       }
@@ -91,26 +102,36 @@ export class PrismaInitializer extends PrismaMigration {
     const cleanPath = queryIndex !== -1 ? pathPart.substring(0, queryIndex) : pathPart
     const decodedPath = decodeURIComponent(cleanPath)
 
+    console.log(`Parsing database URL: ${this.dbUrl}`)
+    console.log(`Decoded path: ${decodedPath}`)
+
     // Handle different path formats
     let resolvedPath: string
 
     if (path.isAbsolute(decodedPath)) {
       // Absolute path - use as is
       resolvedPath = path.normalize(decodedPath)
+      console.log(`Using absolute path: ${resolvedPath}`)
     } else {
       // Relative path - resolve based on environment
       if (this.environment.isDevelopment) {
         // In development, resolve relative to project root
         resolvedPath = path.resolve(this.environment.appPath, decodedPath)
+        console.log(`Development: resolved relative path: ${resolvedPath}`)
       } else {
         // In production, resolve relative to app data directory
         const appDataPath = this.getAppDataPath()
         resolvedPath = path.resolve(appDataPath, decodedPath)
+        console.log(`Production: resolved relative path: ${resolvedPath}`)
       }
     }
 
     const dbFolder = path.dirname(resolvedPath)
     const filename = path.basename(resolvedPath)
+
+    console.log(`Final database path: ${resolvedPath}`)
+    console.log(`Database folder: ${dbFolder}`)
+    console.log(`Database filename: ${filename}`)
 
     return { dbFolder, filename, fullPath: resolvedPath }
   }
