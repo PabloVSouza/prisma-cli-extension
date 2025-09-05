@@ -191,6 +191,10 @@ export class PrismaEngine {
 
   private findPrismaCliPath = (): string => {
     const possiblePaths = [
+      // First, check extracted files from ASAR
+      path.join(this.environment.resourcesPath, 'node_modules', 'prisma', 'build', 'index.js'),
+      path.join(this.environment.resourcesPath, 'temp', 'prisma-cli.js'),
+      
       // Standard Prisma CLI locations
       path.join(this.prismaRoot, 'node_modules', 'prisma', 'build', 'index.js'),
       path.join(this.prismaRoot, 'node_modules', '.bin', 'prisma'),
@@ -261,7 +265,10 @@ export class PrismaEngine {
 
   private handleAsarExtraction = (): void => {
     try {
-      console.log('Handling ASAR extraction for Prisma CLI...')
+      console.log('Handling ASAR extraction for Prisma files...')
+      
+      // Extract all necessary Prisma files from ASAR automatically
+      this.extractAllPrismaFilesFromAsar()
       
       // First, try to extract the Prisma CLI binary
       const extractedPrismaPath = this.extractPrismaCli()
@@ -270,19 +277,74 @@ export class PrismaEngine {
         console.log(`Updated Prisma CLI path to: ${this.prismaPath}`)
       }
 
-      // Then handle other Prisma files if needed
-      const asarLocation = this.getAsarLocation()
-      if (asarLocation) {
-        const prismaFiles = this.getPrismaFilesFromAsar(asarLocation)
-        this.extractPrismaFiles(prismaFiles)
-      }
     } catch (error) {
       console.error('Error handling ASAR extraction:', error)
-      throw new Error(
-        `Failed to extract Prisma files from ASAR: ${
-          error instanceof Error ? error.message : 'Unknown error'
-        }`
+      // Don't throw here - let the system try to work with what it has
+      console.warn('ASAR extraction failed, continuing with available files')
+    }
+  }
+
+  private extractAllPrismaFilesFromAsar = (): void => {
+    try {
+      console.log('Extracting all Prisma files from ASAR...')
+      
+      const asarLocation = this.getAsarLocation()
+      if (!asarLocation) {
+        console.log('No ASAR location found, skipping extraction')
+        return
+      }
+
+      console.log(`Extracting from ASAR: ${asarLocation}`)
+      
+      // List all files in the ASAR
+      const allFiles = asar.listPackage(asarLocation, { isPack: false })
+      console.log(`Found ${allFiles.length} files in ASAR`)
+      
+      // Find all Prisma-related files
+      const prismaFiles = allFiles.filter(file => 
+        file.includes('node_modules/prisma') ||
+        file.includes('node_modules/@prisma') ||
+        file.includes('node_modules/.prisma')
       )
+      
+      console.log(`Found ${prismaFiles.length} Prisma-related files to extract`)
+      
+      // Extract each Prisma file
+      for (const file of prismaFiles) {
+        try {
+          const targetPath = path.join(this.environment.resourcesPath, file)
+          const targetDir = path.dirname(targetPath)
+          
+          // Create directory if it doesn't exist
+          if (!fs.existsSync(targetDir)) {
+            CreateDirectory(targetDir)
+          }
+          
+          // Skip if file already exists
+          if (fs.existsSync(targetPath)) {
+            continue
+          }
+          
+          // Extract the file
+          const fileData = asar.extractFile(asarLocation, file)
+          if (fileData && fileData.length > 0) {
+            fs.writeFileSync(targetPath, fileData)
+            
+            // Set executable permissions for binaries
+            if (file.endsWith('.exe') || file.endsWith('.dylib') || file.endsWith('.so') || file.endsWith('.node')) {
+              fs.chmodSync(targetPath, 0o755)
+            }
+            
+            console.log(`Extracted: ${file}`)
+          }
+        } catch (error) {
+          console.warn(`Failed to extract ${file}:`, error)
+        }
+      }
+      
+      console.log('Prisma files extraction completed')
+    } catch (error) {
+      console.error('Error extracting Prisma files from ASAR:', error)
     }
   }
 
@@ -408,12 +470,12 @@ export class PrismaEngine {
   }
 
   private updatePathsForAsar = (): void => {
-    this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
-    this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
+      this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
+      this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
   }
 
   private extractPrismaFiles = (files: string[]): void => {
-    for (const file of files) {
+      for (const file of files) {
       try {
         const finalPath = path.join(this.backPath, '..', file)
         const extractedPath = this.extractFile(finalPath)
@@ -441,16 +503,16 @@ export class PrismaEngine {
         return undefined
       }
 
-      const dirList = fs.readdirSync(initialPath)
+    const dirList = fs.readdirSync(initialPath)
 
       for (const item of dirList) {
-        const folder = path.join(initialPath, item)
+      const folder = path.join(initialPath, item)
 
         try {
-          if (fs.lstatSync(folder).isDirectory()) {
+      if (fs.lstatSync(folder).isDirectory()) {
             const inside = fs.readdirSync(folder)
 
-            if (inside.includes('prisma')) {
+        if (inside.includes('prisma')) {
               const prismaPath = path.join(folder, 'prisma')
 
               if (
@@ -492,17 +554,25 @@ export class PrismaEngine {
   }
 
   private getEnginePath = (enginePath: string, fileName: string): string => {
+    // First, check if the file exists in the extracted location
+    const extractedPath = path.join(this.environment.resourcesPath, 'node_modules', path.basename(enginePath), fileName)
+    if (fs.existsSync(extractedPath)) {
+      console.log(`Using extracted engine: ${extractedPath}`)
+      return extractedPath
+    }
+    
+    // If not extracted, try the original path
     if (enginePath.includes('app.asar')) {
       try {
-        const finalFilePath = this.extractFile(path.join(enginePath, fileName))
+      const finalFilePath = this.extractFile(path.join(enginePath, fileName))
         if (finalFilePath && fs.existsSync(finalFilePath)) {
-          return finalFilePath
+      return finalFilePath
         } else {
-          console.warn(`Schema engine not found in ASAR: ${fileName}`)
+          console.warn(`Engine not found in ASAR: ${fileName}`)
           return ''
         }
       } catch (error) {
-        console.warn(`Failed to extract schema engine ${fileName}:`, error)
+        console.warn(`Failed to extract engine ${fileName}:`, error)
         return ''
       }
     }

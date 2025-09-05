@@ -1,0 +1,27 @@
+# Minimal electron-builder configuration
+# This replaces the complex configuration with automatic ASAR extraction
+
+files:
+  - '**/*'
+  - '!**/.vscode/*'
+  - '!src/*'
+  - '!electron.vite.config.{js,ts,mjs,cjs}'
+  - '!{.eslintignore,.eslintrc.cjs,.prettierignore,.prettierrc.yaml,dev-app-update.yml,CHANGELOG.md,README.md}'
+  - '!{.env,.env.*,.npmrc,pnpm-lock.yaml}'
+  - '!{tsconfig.json,tsconfig.node.json,tsconfig.web.json}'
+  - '!*.code-workspace'
+
+# No need for complex Prisma file inclusions or asarUnpack!
+# The extension will automatically extract Prisma files from ASAR at runtime
+
+# Optional: If you want to exclude Prisma files from ASAR to reduce size
+# (but this is not necessary with the new automatic extraction)
+# files:
+#   - '!node_modules/prisma/**/*'
+#   - '!node_modules/@prisma/**/*'
+#   - '!node_modules/.prisma/**/*'
+
+# Optional: Basic asarUnpack for other resources if needed
+# asarUnpack:
+#   - resources/*
+#   - prisma/**/*
