@@ -1,6 +1,5 @@
-import { fork, spawn } from 'child_process'
+import { fork } from 'child_process'
 import fs from 'fs'
-import path from 'path'
 import { PrismaConstants } from './constants'
 import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 
@@ -12,7 +11,7 @@ interface Migration {
   logs: string
   rolled_back_at: string | null
   started_at: string
-  applied_steps_count: number
+  applied_steps_count: string
 }
 
 interface PrismaCommandOptions {
@@ -26,9 +25,11 @@ interface PrismaCommandResult {
   stderr: string
 }
 
-// Verify Prisma client is available
+let _PrismaClient: PrismaClientProps
+
 try {
-  require('@prisma/client')
+  // Dynamically require the module
+  _PrismaClient = require('@prisma/client').PrismaClient
 } catch {
   throw new Error(
     "@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project."
@@ -41,7 +42,7 @@ export class PrismaMigration extends PrismaConstants {
   public verifyMigration = async (prisma: PrismaClientProps): Promise<boolean> => {
     try {
       const latest: Migration[] =
-        await prisma.$queryRaw`SELECT * FROM _prisma_migrations ORDER BY finished_at IS NULL, finished_at DESC LIMIT 1`
+        await prisma.$queryRaw`SELECT * FROM _prisma_migrations ORDER BY finished_at DESC LIMIT 1`
 
       if (latest.length === 0) {
         console.log('No migrations found in database')
@@ -68,168 +69,10 @@ export class PrismaMigration extends PrismaConstants {
   }
 
   public runMigration = async (): Promise<void> => {
-    try {
-      await this.runPrismaCommand({
-        command: ['migrate', 'deploy', '--schema', this.schemaPath],
-        dbUrl: this.dbUrl
-      })
-    } catch (error) {
-      console.warn('Prisma CLI command failed, attempting direct migration approach:', error)
-      await this.runDirectMigration()
-    }
-  }
-
-  private runDirectMigration = async (): Promise<void> => {
-    try {
-      console.log('Running direct migration without Prisma CLI...')
-      
-      // For SQLite databases, we can check if the _prisma_migrations table exists
-      // and create it if it doesn't, then mark the latest migration as applied
-      if (this.dbUrl.startsWith('file:')) {
-        console.log('Using direct SQLite migration approach')
-        
-        // Parse the database URL to get the file path
-        const dbPath = this.parseDatabaseUrlFromString(this.dbUrl)
-        if (!dbPath) {
-          throw new Error('Could not parse database URL')
-        }
-        
-        // Check if database file exists
-        if (!fs.existsSync(dbPath)) {
-          console.log('Database file does not exist, creating it...')
-          // Create the directory if it doesn't exist
-          const dbDir = path.dirname(dbPath)
-          if (!fs.existsSync(dbDir)) {
-            fs.mkdirSync(dbDir, { recursive: true })
-          }
-          // Create empty database file
-          fs.writeFileSync(dbPath, '')
-        }
-        
-        // Use Prisma client to run the migration directly
-        const { PrismaClient } = require('@prisma/client')
-        const prisma = new PrismaClient({
-          datasources: {
-            db: {
-              url: this.dbUrl
-            }
-          }
-        })
-        
-        try {
-          // Check if _prisma_migrations table exists
-          const migrations = await prisma.$queryRaw`SELECT name FROM sqlite_master WHERE type='table' AND name='_prisma_migrations'`
-          
-          if (!migrations || (migrations as Array<{ name: string }>).length === 0) {
-            console.log('Creating _prisma_migrations table...')
-            // Create the _prisma_migrations table
-            await prisma.$executeRaw`
-              CREATE TABLE "_prisma_migrations" (
-                "id"                    TEXT PRIMARY KEY NOT NULL,
-                "checksum"              TEXT NOT NULL,
-                "finished_at"           DATETIME,
-                "migration_name"        TEXT NOT NULL,
-                "logs"                  TEXT,
-                "rolled_back_at"        DATETIME,
-                "started_at"            DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
-                "applied_steps_count"   INTEGER NOT NULL DEFAULT 0
-              )
-            `
-            
-            // Insert a dummy migration record to mark the database as migrated
-            await prisma.$executeRaw`
-              INSERT INTO "_prisma_migrations" (
-                "id", "checksum", "migration_name", "started_at", "applied_steps_count"
-              ) VALUES (
-                '00000000-0000-0000-0000-000000000000',
-                'dummy',
-                'init',
-                CURRENT_TIMESTAMP,
-                0
-              )
-            `
-            
-            console.log('Database initialized with migration table')
-          } else {
-            console.log('Migration table already exists')
-          }
-          
-          // Test the connection
-          await prisma.$queryRaw`SELECT 1`
-          console.log('Database connection successful')
-          
-        } finally {
-          await prisma.$disconnect()
-        }
-        
-        console.log('Migration completed using direct approach')
-        return
-      }
-      
-      throw new Error('Direct migration not supported for this database type')
-    } catch (error) {
-      console.error('Direct migration failed:', error)
-      throw new Error(`Migration failed: ${error instanceof Error ? error.message : 'Unknown error'}`)
-    }
-  }
-
-  private getNodeExecutablePath = (): string => {
-    try {
-      // In development, avoid using Electron's Node.js
-      if (this.environment.isDevelopment) {
-        // Try to find system Node.js in common locations
-        const possiblePaths = [
-          '/usr/local/bin/node',
-          '/usr/bin/node',
-          '/opt/homebrew/bin/node',
-          '/opt/local/bin/node',
-          '/usr/local/bin/nodejs',
-          '/usr/bin/nodejs'
-        ]
-
-        for (const nodePath of possiblePaths) {
-          try {
-            if (fs.existsSync(nodePath)) {
-              console.log(`Found system Node.js at: ${nodePath}`)
-              return nodePath
-            }
-          } catch {
-            // Continue to next path
-            continue
-          }
-        }
-
-        // If no system Node.js found, use 'node' from PATH
-        console.log('Using Node.js from PATH')
-        return 'node'
-      }
-
-      // In production/ASAR, use the current process's Node.js executable
-      if (process.execPath && fs.existsSync(process.execPath)) {
-        console.log(`Using current Node.js executable: ${process.execPath}`)
-        return process.execPath
-      }
-
-      // Fallback to 'node' from PATH
-      console.log('Using Node.js from PATH')
-      return 'node'
-    } catch (error) {
-      console.error('Error finding Node.js executable:', error)
-      return 'node'
-    }
-  }
-
-  private parseDatabaseUrlFromString = (dbUrl: string): string | null => {
-    try {
-      const url = new URL(dbUrl)
-      if (url.protocol === 'file:') {
-        return decodeURIComponent(url.pathname)
-      }
-      return null
-    } catch (error) {
-      console.error('Error parsing database URL:', error)
-      return null
-    }
+    await this.runPrismaCommand({
+      command: ['migrate', 'deploy', '--schema', this.schemaPath],
+      dbUrl: this.dbUrl
+    })
   }
 
   public runPrismaCommand = async (options: PrismaCommandOptions): Promise<PrismaCommandResult> => {
@@ -240,85 +83,40 @@ export class PrismaMigration extends PrismaConstants {
       throw new Error(`Prisma CLI not found at: ${prismaPath}`)
     }
 
-    // Prevent recursive execution - if we're already running inside a Prisma CLI process
-    if (process.env.PRISMA_CLI_EXECUTING === 'true') {
-      console.log('Already executing Prisma CLI, skipping to prevent recursion')
-      return {
-        exitCode: 0,
-        stdout: 'Migration already in progress',
-        stderr: ''
-      }
-    }
-
     console.log(`Running Prisma command: ${command.join(' ')}`)
-    console.log(`Using Prisma CLI at: ${prismaPath}`)
-    console.log(`Schema path: ${this.schemaPath}`)
-    console.log(`Query engine path: ${this.qePath}`)
-    console.log(`Schema engine path: ${this.sePath}`)
 
     try {
       const result = await new Promise<PrismaCommandResult>((resolve, reject) => {
         let stdout = ''
         let stderr = ''
 
-        // Determine if we need to use Node.js to execute the Prisma CLI
-        const isNodeJsFile = prismaPath.endsWith('.js')
-        
-        // In development, always use Node.js for .js files, not Electron
-        let executablePath: string
-        let args: string[]
-        
-        if (isNodeJsFile) {
-          // Use Node.js directly, not Electron's Node.js
-          // Find the correct Node.js executable path
-          executablePath = this.getNodeExecutablePath()
-          args = [prismaPath, ...command]
-        } else {
-          executablePath = prismaPath
-          args = command
-        }
+        const child = fork(prismaPath, command, {
+          env: {
+            ...process.env,
+            DATABASE_URL: dbUrl,
+            PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
+            PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
+            PRISMA_FMT_BINARY: this.qePath,
+            PRISMA_INTROSPECTION_ENGINE_BINARY: this.qePath
+          },
+          stdio: 'pipe',
+          silent: false
+        })
 
-        console.log(`Executing: ${executablePath} ${args.join(' ')}`)
-
-        // Use spawn for Node.js execution, fork for direct executable
-        // Prepare environment variables, only set if paths exist
-        const envVars: { [key: string]: string } = {
-          ...process.env,
-          DATABASE_URL: dbUrl,
-          PRISMA_CLI_EXECUTING: 'true'
-        }
-        
-        if (this.sePath) {
-          envVars.PRISMA_SCHEMA_ENGINE_BINARY = this.sePath
-          envVars.PRISMA_INTROSPECTION_ENGINE_BINARY = this.sePath
-        }
-        
-        if (this.qePath) {
-          envVars.PRISMA_QUERY_ENGINE_LIBRARY = this.qePath
-          envVars.PRISMA_FMT_BINARY = this.qePath
-        }
-
-        const child = isNodeJsFile 
-          ? spawn(executablePath, args, {
-              env: envVars,
-              stdio: 'pipe'
-            })
-          : fork(executablePath, args, {
-              env: envVars,
-              stdio: 'pipe',
-              silent: false
-            })
+        child.on('message', (msg) => {
+          console.log('Prisma message:', msg)
+        })
 
         child.on('error', (error) => {
           console.error('Child process error:', error)
           reject(new Error(`Prisma command failed: ${error.message}`))
         })
 
-        child.on('close', (code, signal) => {
+        child.on('close', (code) => {
           const result: PrismaCommandResult = {
-            exitCode: typeof code === 'number' ? code : 1,
+            exitCode: code || 0,
             stdout: stdout.trim(),
-            stderr: (stderr + (signal ? `\nterminated by signal: ${signal}` : '')).trim()
+            stderr: stderr.trim()
           }
           resolve(result)
         })
@@ -332,16 +130,16 @@ export class PrismaMigration extends PrismaConstants {
         child.stderr?.on('data', (data) => {
           const output = data.toString()
           stderr += output
-          console.error('Prisma stderr:', output.trim())
+          console.log('Prisma stderr:', output.trim())
         })
       })
 
       if (result.exitCode !== 0) {
-        const err = new Error(
-          `Prisma command "${command.join(' ')}" failed (exit ${result.exitCode})`
+        throw new Error(
+          `Prisma command "${command.join(' ')}" failed with exit code ${
+            result.exitCode
+          }. Stderr: ${result.stderr}`
         )
-        ;(err as Error & { result?: PrismaCommandResult }).result = result
-        throw err
       }
 
       console.log('Prisma command completed successfully')
