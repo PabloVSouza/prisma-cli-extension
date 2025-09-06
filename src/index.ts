@@ -3,6 +3,7 @@
 import fs from 'fs'
 import path from 'path'
 import os from 'os'
+import asar from '@electron/asar'
 import CreateDirectory from 'utils/CreateDirectory'
 import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 import { PrismaMigration } from './migration'
@@ -198,6 +199,27 @@ export class PrismaInitializer extends PrismaMigration {
         return
       }
       
+      // If we're in an ASAR environment, try to extract the Prisma client
+      if (this.isAsarEnvironment()) {
+        console.log('ASAR environment detected, attempting to extract Prisma client...')
+        await this.extractPrismaClientFromAsar()
+        
+        // Check again after extraction
+        for (const clientPath of possibleClientPaths) {
+          const defaultClientPath = path.join(clientPath, 'index.js')
+          if (fs.existsSync(defaultClientPath)) {
+            console.log(`✅ Prisma client found after extraction at: ${clientPath}`)
+            clientExists = true
+            break
+          }
+        }
+      }
+      
+      if (clientExists) {
+        console.log('✅ Prisma client available')
+        return
+      }
+      
       console.log('Prisma client not found, but skipping generation to avoid binary target issues')
       console.log('The Prisma client should be generated during the build process')
       console.log('If you encounter issues, run: npx prisma generate')
@@ -209,6 +231,90 @@ export class PrismaInitializer extends PrismaMigration {
       // Don't throw here - let the system try to continue
       console.warn('Prisma client check failed, continuing with available client')
     }
+  }
+
+  private extractPrismaClientFromAsar = async (): Promise<void> => {
+    try {
+      console.log('Extracting Prisma client from ASAR...')
+      
+      const asarLocation = this.getAsarLocationForClient()
+      if (!asarLocation) {
+        console.log('No ASAR location found, skipping Prisma client extraction')
+        return
+      }
+      
+      console.log(`Extracting from ASAR: ${asarLocation}`)
+      
+      // List all files in the ASAR
+      const allFiles = asar.listPackage(asarLocation, { isPack: false })
+      console.log(`Found ${allFiles.length} files in ASAR`)
+      
+      // Find all Prisma client files
+      const prismaClientFiles = allFiles.filter(
+        (file) =>
+          file.includes('node_modules/@prisma/client') ||
+          file.includes('node_modules/.prisma/client')
+      )
+      
+      console.log(`Found ${prismaClientFiles.length} Prisma client files to extract`)
+      
+      // Determine the best extraction location
+      const unpackedDir = path.join(this.environment.resourcesPath, 'app.asar.unpacked')
+      const directDir = path.join(this.environment.resourcesPath, 'node_modules')
+      
+      // Prefer app.asar.unpacked if it exists, otherwise use direct extraction
+      const extractionBase = fs.existsSync(unpackedDir) ? unpackedDir : directDir
+      console.log(`Using extraction base: ${extractionBase}`)
+      
+      // Extract each Prisma client file
+      for (const file of prismaClientFiles) {
+        try {
+          // Remove the leading slash and node_modules/ prefix for extraction
+          const relativePath = file.startsWith('/node_modules/') ? file.substring(1) : file
+          const targetPath = path.join(extractionBase, relativePath)
+          const targetDir = path.dirname(targetPath)
+          
+          // Create directory if it doesn't exist
+          if (!fs.existsSync(targetDir)) {
+            CreateDirectory(targetDir)
+          }
+          
+          // Skip if file already exists
+          if (fs.existsSync(targetPath)) {
+            continue
+          }
+          
+          // Extract the file
+          const fileData = asar.extractFile(asarLocation, file)
+          if (fileData && fileData.length > 0) {
+            fs.writeFileSync(targetPath, fileData)
+            console.log(`Extracted: ${file} -> ${targetPath}`)
+          }
+        } catch (error) {
+          console.warn(`Failed to extract ${file}:`, error)
+        }
+      }
+      
+      // Verify @prisma/client was extracted
+      const prismaClientPath = path.join(extractionBase, 'node_modules', '@prisma', 'client')
+      if (fs.existsSync(prismaClientPath)) {
+        console.log('✅ @prisma/client successfully extracted')
+      } else {
+        console.warn('⚠️ @prisma/client not found in extracted files')
+        console.log(`Checked path: ${prismaClientPath}`)
+      }
+      
+      console.log('Prisma client extraction completed')
+    } catch (error) {
+      console.error('Error extracting Prisma client from ASAR:', error)
+    }
+  }
+
+  private getAsarLocationForClient = (): string | null => {
+    const asarIndex = this.prismaPath.indexOf('asar')
+    if (asarIndex === -1) return null
+
+    return path.join(this.prismaPath.substring(0, asarIndex + 4))
   }
 
   // Removed unused normalizeDbPath helper.
