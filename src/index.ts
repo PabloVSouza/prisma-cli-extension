@@ -16,8 +16,11 @@ const getPrismaClient = (): PrismaClientProps => {
       // Dynamically require the module
       PrismaClient = require('@prisma/client').PrismaClient
     } catch (error) {
+      console.error('Failed to load Prisma client:', error)
+      console.error('This usually means the Prisma client was not generated or is not available in the ASAR archive')
+      console.error('Please ensure Prisma client is generated during the build process')
       throw new Error(
-        `@prisma/client is not installed. Please ensure that '@prisma/client' is installed as a dependency in your project. Error: ${error}`
+        `@prisma/client is not available. This usually means the Prisma client was not generated or is not available in the ASAR archive. Please ensure Prisma client is generated during the build process. Error: ${error}`
       )
     }
   }
