@@ -759,6 +759,12 @@ export class PrismaEngine {
     return platform
   }
 
+  public getBinaryTargets = (): string[] => {
+    if (this.platform === 'darwin') return ['darwin', 'darwin-arm64']
+    if (this.platform === 'linux') return ['linux', 'linux-arm64']
+    return [this.platform]
+  }
+
   private getDistro = (): TDistroInfo => {
     const os = fs.readFileSync('/etc/os-release', 'utf8')
     const opj = {} as { [key: string]: string }

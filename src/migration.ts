@@ -1,5 +1,6 @@
 import { fork } from 'child_process'
 import fs from 'fs'
+import path from 'path'
 import { PrismaConstants } from './constants'
 import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 
@@ -99,12 +100,18 @@ export class PrismaMigration extends PrismaConstants {
         const env: Record<string, string> = {
           ...process.env,
           DATABASE_URL: dbUrl,
-          PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-          PRISMA_FMT_BINARY: this.qePath,
-          PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath,
-          // Prisma v6 specific environment variables
-          PRISMA_CLI_BINARY_TARGETS: this.binaryTarget,
-          PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
+          // For generate command, use minimal environment variables
+          ...(command.includes('generate') ? {
+            // Only set essential variables for generate
+            PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
+          } : {
+            // For other commands, set engine paths
+            PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
+            PRISMA_FMT_BINARY: this.qePath,
+            PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath,
+            PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
+            PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
+          })
         }
 
         // Only set PRISMA_QUERY_ENGINE_LIBRARY for commands that need it (not for generate)

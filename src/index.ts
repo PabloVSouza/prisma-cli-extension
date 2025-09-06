@@ -168,28 +168,43 @@ export class PrismaInitializer extends PrismaMigration {
     try {
       console.log('Ensuring Prisma client is generated...')
       
-      // Check if the generated client exists
-      const generatedClientPath = path.join(this.environment.resourcesPath, 'node_modules', '.prisma', 'client')
-      const defaultClientPath = path.join(generatedClientPath, 'default.js')
+      // Check if the generated client exists in multiple possible locations
+      const possibleClientPaths = [
+        // Standard location
+        path.join(this.environment.appPath, 'node_modules', '@prisma', 'client'),
+        // Resources location
+        path.join(this.environment.resourcesPath, 'node_modules', '@prisma', 'client'),
+        // Unpacked location
+        path.join(this.environment.resourcesPath, 'app.asar.unpacked', 'node_modules', '@prisma', 'client'),
+        // Direct location
+        path.join(this.environment.resourcesPath, 'node_modules', '@prisma', 'client')
+      ]
       
-      if (fs.existsSync(defaultClientPath)) {
+      let clientExists = false
+      for (const clientPath of possibleClientPaths) {
+        const defaultClientPath = path.join(clientPath, 'index.js')
+        if (fs.existsSync(defaultClientPath)) {
+          console.log(`✅ Prisma client found at: ${clientPath}`)
+          clientExists = true
+          break
+        }
+      }
+      
+      if (clientExists) {
         console.log('✅ Prisma client already generated')
         return
       }
       
-      console.log('Prisma client not found, generating...')
+      console.log('Prisma client not found, but skipping generation to avoid binary target issues')
+      console.log('The Prisma client should be generated during the build process')
+      console.log('If you encounter issues, run: npx prisma generate')
       
-      // Run prisma generate to create the client
-      await this.runPrismaCommand({
-        command: ['generate', '--schema', this.schemaPath],
-        dbUrl: this.dbUrl
-      })
-      
-      console.log('✅ Prisma client generated successfully')
+      // Don't try to generate the client here to avoid binary target issues
+      // The client should be generated during the build process
     } catch (error) {
-      console.error('Error generating Prisma client:', error)
+      console.error('Error checking Prisma client:', error)
       // Don't throw here - let the system try to continue
-      console.warn('Prisma client generation failed, continuing with available client')
+      console.warn('Prisma client check failed, continuing with available client')
     }
   }
 
