@@ -11,6 +11,21 @@ import { PrismaMigration } from './migration'
 // Lazy load PrismaClient to handle ASAR extraction timing
 let PrismaClient: PrismaClientProps | null = null
 
+// Simple file logging for production debugging
+const logToFile = (message: string) => {
+  try {
+    const logDir = path.join(os.homedir(), '.comic-universe', 'logs')
+    if (!fs.existsSync(logDir)) {
+      fs.mkdirSync(logDir, { recursive: true })
+    }
+    const logFile = path.join(logDir, 'prisma-extension.log')
+    const timestamp = new Date().toISOString()
+    fs.appendFileSync(logFile, `[${timestamp}] ${message}\n`)
+  } catch (error) {
+    // Silently fail if logging doesn't work
+  }
+}
+
 const getPrismaClient = (): PrismaClientProps => {
   if (!PrismaClient) {
     try {
@@ -332,17 +347,20 @@ export class PrismaInitializer extends PrismaMigration {
             
             copyRecursive(prismaClientPath, dotPrismaClientPath)
             console.log(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
+            logToFile(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
           }
           
           // Verify the copy works by checking if default.js is accessible
           const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
           if (fs.existsSync(defaultJsPath)) {
             console.log(`✅ Copy verified: ${defaultJsPath} is accessible`)
+            logToFile(`✅ Copy verified: ${defaultJsPath} is accessible`)
             
             // Add .prisma/client to module resolution paths
             if (require.main?.paths && !require.main.paths.includes(dotPrismaClientPath)) {
               require.main.paths.unshift(dotPrismaClientPath)
               console.log(`✅ Added .prisma/client to module resolution: ${dotPrismaClientPath}`)
+              logToFile(`✅ Added .prisma/client to module resolution: ${dotPrismaClientPath}`)
             }
           } else {
             console.log(`⚠️ Copy created but default.js not accessible at: ${defaultJsPath}`)
@@ -350,6 +368,7 @@ export class PrismaInitializer extends PrismaMigration {
         } catch (error) {
           console.error('Failed to copy @prisma/client files:', error)
           console.log('Continuing without .prisma/client copy...')
+          logToFile(`❌ Failed to copy @prisma/client files: ${error}`)
         }
       }
 
