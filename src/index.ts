@@ -281,19 +281,12 @@ export class PrismaInitializer extends PrismaMigration {
         }
       }
 
-      // If .prisma/client is missing, try to generate it
+      // Skip .prisma/client generation in production builds
+      // The @prisma/client extraction is sufficient for runtime operation
       if (clientExists && !prismaClientExists) {
-        console.log('⚠️ .prisma/client directory missing, attempting to generate...')
-        try {
-          // Use a dummy database URL for generation
-          const dummyDbUrl = 'file:./dev-data/database/database.db'
-          await this.runPrismaCommand({ command: ['generate'], dbUrl: dummyDbUrl })
-          console.log('✅ Prisma client generated successfully')
-          return
-        } catch (error) {
-          console.error('Failed to generate Prisma client:', error)
-          console.log('Continuing without generated client...')
-        }
+        console.log('⚠️ .prisma/client directory missing, but @prisma/client is available')
+        console.log('Skipping .prisma/client generation in ASAR environment')
+        console.log('The extracted @prisma/client should be sufficient for runtime operation')
       }
 
       if (clientExists) {
