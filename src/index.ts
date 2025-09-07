@@ -26,6 +26,28 @@ const logToFile = (message: string) => {
   }
 }
 
+// Ensure unpacked extension takes precedence over ASAR version
+const ensureUnpackedExtensionPriority = (): void => {
+  try {
+    const resourcesPath = (process as any).resourcesPath || ''
+    const unpackedExtensionPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'prisma-cli-extension')
+    
+    if (fs.existsSync(unpackedExtensionPath)) {
+      // Add unpacked extension path to module resolution if not already present
+      if (require.main?.paths && !require.main.paths.includes(unpackedExtensionPath)) {
+        require.main.paths.unshift(unpackedExtensionPath)
+        console.log(`✅ Added unpacked extension to module resolution: ${unpackedExtensionPath}`)
+        logToFile(`✅ Added unpacked extension to module resolution: ${unpackedExtensionPath}`)
+      }
+    }
+  } catch (error) {
+    console.warn('Failed to ensure unpacked extension priority:', error)
+  }
+}
+
+// Call this immediately when the module loads
+ensureUnpackedExtensionPriority()
+
 const getPrismaClient = (): PrismaClientProps => {
   if (!PrismaClient) {
     try {
@@ -486,7 +508,7 @@ export class PrismaInitializer extends PrismaMigration {
     if (asarIndex !== -1) {
       return path.join(this.prismaPath.substring(0, asarIndex + 4))
     }
-    
+
     // If not found in prismaPath, try to construct from resourcesPath
     const resourcesPath = (process as any).resourcesPath || ''
     if (resourcesPath) {
@@ -497,13 +519,13 @@ export class PrismaInitializer extends PrismaMigration {
         return asarPath
       }
     }
-    
+
     // Try common ASAR locations
     const commonPaths = [
       '/Applications/Comic Universe.app/Contents/Resources/app.asar',
       path.join(process.cwd(), 'app.asar')
     ]
-    
+
     for (const asarPath of commonPaths) {
       if (fs.existsSync(asarPath)) {
         console.log(`Found ASAR at: ${asarPath}`)
@@ -511,7 +533,7 @@ export class PrismaInitializer extends PrismaMigration {
         return asarPath
       }
     }
-    
+
     console.log('Could not find ASAR file')
     logToFile('Could not find ASAR file')
     return null
