@@ -85,8 +85,14 @@ const getPrismaClient = (): PrismaClientProps => {
 
       // Dynamically require the module from the unpacked location
       const resourcesPath = (process as any).resourcesPath || ''
-      const unpackedClientPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', '@prisma', 'client')
-      
+      const unpackedClientPath = path.join(
+        resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        '@prisma',
+        'client'
+      )
+
       if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
         console.log(`✅ Loading Prisma client from unpacked location: ${unpackedClientPath}`)
         logToFile(`✅ Loading Prisma client from unpacked location: ${unpackedClientPath}`)
@@ -390,16 +396,9 @@ export class PrismaInitializer extends PrismaMigration {
 
             copyRecursive(prismaClientPath, dotPrismaClientPath)
 
-            // Fix the default.js file to point to the correct location
-            const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
-            if (fs.existsSync(defaultJsPath)) {
-              const defaultJsContent = `module.exports = {
-  ...require('@prisma/client/default'),
-}`
-              fs.writeFileSync(defaultJsPath, defaultJsContent)
-              console.log(`✅ Fixed default.js to point to @prisma/client`)
-              logToFile(`✅ Fixed default.js to point to @prisma/client`)
-            }
+            // The default.js file should work as-is, no need to modify it
+            console.log(`✅ .prisma/client files copied successfully`)
+            logToFile(`✅ .prisma/client files copied successfully`)
 
             console.log(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
             logToFile(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
