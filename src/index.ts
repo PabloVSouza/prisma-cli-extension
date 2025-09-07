@@ -315,6 +315,14 @@ export class PrismaInitializer extends PrismaMigration {
             fs.symlinkSync(prismaClientPath, dotPrismaClientPath, 'dir')
             console.log(`✅ Created symlink: ${dotPrismaClientPath} -> ${prismaClientPath}`)
           }
+          
+          // Verify the symlink works by checking if default.js is accessible
+          const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
+          if (fs.existsSync(defaultJsPath)) {
+            console.log(`✅ Symlink verified: ${defaultJsPath} is accessible`)
+          } else {
+            console.log(`⚠️ Symlink created but default.js not accessible at: ${defaultJsPath}`)
+          }
         } catch (error) {
           console.error('Failed to create .prisma/client symlink:', error)
           console.log('Continuing without .prisma/client symlink...')
