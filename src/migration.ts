@@ -102,9 +102,9 @@ export class PrismaMigration extends PrismaConstants {
           // Add unpacked paths to NODE_PATH for module resolution
           NODE_PATH: [
             process.env.NODE_PATH,
-            path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules'),
-            path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', '@prisma', 'engines'),
-            path.join(process.resourcesPath || '', 'app.asar.unpacked', 'prisma', 'client')
+            path.join((process as any).resourcesPath || '', 'app.asar.unpacked', 'node_modules'),
+            path.join((process as any).resourcesPath || '', 'app.asar.unpacked', 'node_modules', '@prisma', 'engines'),
+            path.join((process as any).resourcesPath || '', 'app.asar.unpacked', 'prisma', 'client')
           ].filter(Boolean).join(':'),
           // For generate command, use minimal environment variables
           ...(command.includes('generate')
