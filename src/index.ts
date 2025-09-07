@@ -30,8 +30,13 @@ const logToFile = (message: string) => {
 const ensureUnpackedExtensionPriority = (): void => {
   try {
     const resourcesPath = (process as any).resourcesPath || ''
-    const unpackedExtensionPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', 'prisma-cli-extension')
-    
+    const unpackedExtensionPath = path.join(
+      resourcesPath,
+      'app.asar.unpacked',
+      'node_modules',
+      'prisma-cli-extension'
+    )
+
     if (fs.existsSync(unpackedExtensionPath)) {
       // Add unpacked extension path to module resolution if not already present
       if (require.main?.paths && !require.main.paths.includes(unpackedExtensionPath)) {
@@ -47,6 +52,14 @@ const ensureUnpackedExtensionPriority = (): void => {
 
 // Call this immediately when the module loads
 ensureUnpackedExtensionPriority()
+
+// Detect if we're running from inside ASAR and throw an error to force loading from unpacked location
+if (__dirname.includes('app.asar') && !__dirname.includes('app.asar.unpacked')) {
+  console.error('❌ Extension is running from inside ASAR! This will cause issues.')
+  console.error('The extension should be loaded from the unpacked location.')
+  console.error('Current path:', __dirname)
+  throw new Error('Extension must be loaded from unpacked location, not from inside ASAR')
+}
 
 const getPrismaClient = (): PrismaClientProps => {
   if (!PrismaClient) {
