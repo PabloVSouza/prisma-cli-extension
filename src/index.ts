@@ -214,17 +214,38 @@ export class PrismaInitializer extends PrismaMigration {
         path.join(this.environment.resourcesPath, 'node_modules', '@prisma', 'client')
       ]
 
+      // Also check for .prisma/client directory
+      const possiblePrismaClientPaths = [
+        path.join(this.environment.appPath, 'node_modules', '.prisma', 'client'),
+        path.join(this.environment.resourcesPath, 'node_modules', '.prisma', 'client'),
+        path.join(this.environment.resourcesPath, 'app.asar.unpacked', 'node_modules', '.prisma', 'client'),
+        path.join(this.environment.resourcesPath, 'node_modules', '.prisma', 'client')
+      ]
+
       let clientExists = false
+      let prismaClientExists = false
+
+      // Check @prisma/client
       for (const clientPath of possibleClientPaths) {
         const defaultClientPath = path.join(clientPath, 'index.js')
         if (fs.existsSync(defaultClientPath)) {
-          console.log(`✅ Prisma client found at: ${clientPath}`)
+          console.log(`✅ @prisma/client found at: ${clientPath}`)
           clientExists = true
           break
         }
       }
 
-      if (clientExists) {
+      // Check .prisma/client
+      for (const clientPath of possiblePrismaClientPaths) {
+        const defaultClientPath = path.join(clientPath, 'default.js')
+        if (fs.existsSync(defaultClientPath)) {
+          console.log(`✅ .prisma/client found at: ${clientPath}`)
+          prismaClientExists = true
+          break
+        }
+      }
+
+      if (clientExists && prismaClientExists) {
         console.log('✅ Prisma client already generated')
         return
       }
@@ -238,10 +259,34 @@ export class PrismaInitializer extends PrismaMigration {
         for (const clientPath of possibleClientPaths) {
           const defaultClientPath = path.join(clientPath, 'index.js')
           if (fs.existsSync(defaultClientPath)) {
-            console.log(`✅ Prisma client found after extraction at: ${clientPath}`)
+            console.log(`✅ @prisma/client found after extraction at: ${clientPath}`)
             clientExists = true
             break
           }
+        }
+
+        for (const clientPath of possiblePrismaClientPaths) {
+          const defaultClientPath = path.join(clientPath, 'default.js')
+          if (fs.existsSync(defaultClientPath)) {
+            console.log(`✅ .prisma/client found after extraction at: ${clientPath}`)
+            prismaClientExists = true
+            break
+          }
+        }
+      }
+
+      // If .prisma/client is missing, try to generate it
+      if (clientExists && !prismaClientExists) {
+        console.log('⚠️ .prisma/client directory missing, attempting to generate...')
+        try {
+          // Use a dummy database URL for generation
+          const dummyDbUrl = 'file:./dev-data/database/database.db'
+          await this.runPrismaCommand({ command: ['generate'], dbUrl: dummyDbUrl })
+          console.log('✅ Prisma client generated successfully')
+          return
+        } catch (error) {
+          console.error('Failed to generate Prisma client:', error)
+          console.log('Continuing without generated client...')
         }
       }
 

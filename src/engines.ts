@@ -362,7 +362,7 @@ export class PrismaEngine {
             // Add node_modules prefix if missing
             relativePath = `node_modules/${file}`
           }
-          
+
           const targetPath = path.join(extractionBase, relativePath)
           const targetDir = path.dirname(targetPath)
 
@@ -379,7 +379,7 @@ export class PrismaEngine {
           // Extract the file - try different path formats
           let fileData: Buffer | null = null
           const possiblePaths = [file, file.substring(1), file.replace(/^\//, '')]
-          
+
           for (const tryPath of possiblePaths) {
             try {
               fileData = asar.extractFile(asarLocation, tryPath)
@@ -634,12 +634,12 @@ export class PrismaEngine {
   }
 
   private updatePathsForAsar = (): void => {
-      this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
-      this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
+    this.prismaPath = path.join(this.prismaPath.replace('app.asar', ''))
+    this.schemaPath = path.join(this.schemaPath.replace('app.asar', ''))
   }
 
   private extractPrismaFiles = (files: string[]): void => {
-      for (const file of files) {
+    for (const file of files) {
       try {
         const finalPath = path.join(this.backPath, '..', file)
         const extractedPath = this.extractFile(finalPath)
@@ -667,16 +667,16 @@ export class PrismaEngine {
         return undefined
       }
 
-    const dirList = fs.readdirSync(initialPath)
+      const dirList = fs.readdirSync(initialPath)
 
       for (const item of dirList) {
-      const folder = path.join(initialPath, item)
+        const folder = path.join(initialPath, item)
 
         try {
-      if (fs.lstatSync(folder).isDirectory()) {
+          if (fs.lstatSync(folder).isDirectory()) {
             const inside = fs.readdirSync(folder)
 
-        if (inside.includes('prisma')) {
+            if (inside.includes('prisma')) {
               const prismaPath = path.join(folder, 'prisma')
 
               if (
@@ -746,9 +746,9 @@ export class PrismaEngine {
     // If not extracted, try the original path
     if (enginePath.includes('app.asar')) {
       try {
-      const finalFilePath = this.extractFile(path.join(enginePath, fileName))
+        const finalFilePath = this.extractFile(path.join(enginePath, fileName))
         if (finalFilePath && fs.existsSync(finalFilePath)) {
-      return finalFilePath
+          return finalFilePath
         } else {
           console.warn(`Engine not found in ASAR: ${fileName}`)
           // Don't return empty string - let Prisma handle missing engines
