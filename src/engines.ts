@@ -191,11 +191,19 @@ export class PrismaEngine {
 
   private findPrismaCliPath = (): string => {
     const possiblePaths = [
-      // First, check ASAR path (highest priority for dependencies)
-      path.join(this.environment.resourcesPath, 'app.asar', 'node_modules', 'prisma', 'build', 'index.js'),
+      // First, check unpacked ASAR path (highest priority for production with WASM files)
       path.join(
         this.environment.resourcesPath,
         'app.asar.unpacked',
+        'node_modules',
+        'prisma',
+        'build',
+        'index.js'
+      ),
+      // Then check ASAR path
+      path.join(
+        this.environment.resourcesPath,
+        'app.asar',
         'node_modules',
         'prisma',
         'build',
