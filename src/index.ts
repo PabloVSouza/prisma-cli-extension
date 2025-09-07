@@ -59,7 +59,7 @@ export class PrismaInitializer extends PrismaMigration {
     // Add unpacked node_modules to module resolution path
     const resourcesPath = (process as any).resourcesPath || ''
     const unpackedNodeModules = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules')
-    
+
     if (fs.existsSync(unpackedNodeModules)) {
       // Add to module resolution paths if not already present
       if (require.main?.paths && !require.main.paths.includes(unpackedNodeModules)) {
@@ -295,12 +295,30 @@ export class PrismaInitializer extends PrismaMigration {
         }
       }
 
-      // Skip .prisma/client generation in production builds
-      // The @prisma/client extraction is sufficient for runtime operation
+      // Create .prisma/client directory with symlinks to @prisma/client for compatibility
       if (clientExists && !prismaClientExists) {
-        console.log('⚠️ .prisma/client directory missing, but @prisma/client is available')
-        console.log('Skipping .prisma/client generation in ASAR environment')
-        console.log('The extracted @prisma/client should be sufficient for runtime operation')
+        console.log('⚠️ .prisma/client directory missing, creating symlinks to @prisma/client')
+        try {
+          const resourcesPath = (process as any).resourcesPath || ''
+          const unpackedNodeModules = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules')
+          const prismaClientPath = path.join(unpackedNodeModules, '@prisma', 'client')
+          const dotPrismaClientPath = path.join(unpackedNodeModules, '.prisma', 'client')
+          
+          // Create .prisma directory if it doesn't exist
+          const dotPrismaPath = path.join(unpackedNodeModules, '.prisma')
+          if (!fs.existsSync(dotPrismaPath)) {
+            fs.mkdirSync(dotPrismaPath, { recursive: true })
+          }
+          
+          // Create symlink from .prisma/client to @prisma/client
+          if (!fs.existsSync(dotPrismaClientPath)) {
+            fs.symlinkSync(prismaClientPath, dotPrismaClientPath, 'dir')
+            console.log(`✅ Created symlink: ${dotPrismaClientPath} -> ${prismaClientPath}`)
+          }
+        } catch (error) {
+          console.error('Failed to create .prisma/client symlink:', error)
+          console.log('Continuing without .prisma/client symlink...')
+        }
       }
 
       if (clientExists) {
