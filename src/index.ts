@@ -86,18 +86,38 @@ const getPrismaClient = (): PrismaClientProps => {
       // After setting up module resolution, use standard require
       console.log(`✅ Loading Prisma client using standard require after module resolution setup`)
       logToFile(`✅ Loading Prisma client using standard require after module resolution setup`)
-      
+
       // Ensure the unpacked @prisma/client is prioritized in module resolution
       const resourcesPath = (process as any).resourcesPath || ''
-      const unpackedClientPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', '@prisma', 'client')
+      const unpackedClientPath = path.join(
+        resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        '@prisma',
+        'client'
+      )
+      console.log(`🔍 Checking unpacked @prisma/client at: ${unpackedClientPath}`)
+      logToFile(`🔍 Checking unpacked @prisma/client at: ${unpackedClientPath}`)
+      
       if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
+        console.log(`✅ Unpacked @prisma/client exists`)
+        logToFile(`✅ Unpacked @prisma/client exists`)
+        
         if (!require.main?.paths.includes(unpackedClientPath)) {
           require.main?.paths.unshift(unpackedClientPath)
-          console.log(`✅ Added unpacked @prisma/client to module resolution: ${unpackedClientPath}`)
+          console.log(
+            `✅ Added unpacked @prisma/client to module resolution: ${unpackedClientPath}`
+          )
           logToFile(`✅ Added unpacked @prisma/client to module resolution: ${unpackedClientPath}`)
+        } else {
+          console.log(`⚠️ Unpacked @prisma/client path already in module resolution`)
+          logToFile(`⚠️ Unpacked @prisma/client path already in module resolution`)
         }
+      } else {
+        console.log(`❌ Unpacked @prisma/client does not exist`)
+        logToFile(`❌ Unpacked @prisma/client does not exist`)
       }
-      
+
       PrismaClient = require('@prisma/client').PrismaClient
     } catch (error) {
       console.error('Failed to load Prisma client:', error)
