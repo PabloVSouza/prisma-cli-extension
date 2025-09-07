@@ -118,22 +118,30 @@ const getPrismaClient = (): PrismaClientProps => {
         logToFile(`❌ Unpacked @prisma/client does not exist`)
       }
 
-      // Directly require from the unpacked location to avoid ASAR version
-      const unpackedClientPath = path.join(
-        resourcesPath,
-        'app.asar.unpacked',
-        'node_modules',
-        '@prisma',
-        'client'
-      )
-      if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
-        console.log(`✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`)
-        logToFile(`✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`)
-        PrismaClient = require(unpackedClientPath).PrismaClient
+      // Try to require from custom Prisma client location first
+      const customClientPath = path.join(resourcesPath, 'app.asar.unpacked', 'prisma', 'client')
+      if (fs.existsSync(path.join(customClientPath, 'index.js'))) {
+        console.log(`✅ Directly requiring Prisma client from custom location: ${customClientPath}`)
+        logToFile(`✅ Directly requiring Prisma client from custom location: ${customClientPath}`)
+        PrismaClient = require(customClientPath).PrismaClient
       } else {
-        console.log(`⚠️ Unpacked @prisma/client not found, falling back to standard require`)
-        logToFile(`⚠️ Unpacked @prisma/client not found, falling back to standard require`)
-        PrismaClient = require('@prisma/client').PrismaClient
+        // Fallback to unpacked @prisma/client location
+        const unpackedClientPath = path.join(
+          resourcesPath,
+          'app.asar.unpacked',
+          'node_modules',
+          '@prisma',
+          'client'
+        )
+        if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
+          console.log(`✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`)
+          logToFile(`✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`)
+          PrismaClient = require(unpackedClientPath).PrismaClient
+        } else {
+          console.log(`⚠️ Custom and unpacked @prisma/client not found, falling back to standard require`)
+          logToFile(`⚠️ Custom and unpacked @prisma/client not found, falling back to standard require`)
+          PrismaClient = require('@prisma/client').PrismaClient
+        }
       }
     } catch (error) {
       console.error('Failed to load Prisma client:', error)
