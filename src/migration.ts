@@ -99,9 +99,10 @@ export class PrismaMigration extends PrismaConstants {
         const env: Record<string, string> = {
           ...process.env,
           DATABASE_URL: dbUrl,
-          // Add unpacked paths to NODE_PATH for module resolution
+          // Add both ASAR and unpacked paths to NODE_PATH for module resolution
           NODE_PATH: [
             process.env.NODE_PATH,
+            path.join((process as any).resourcesPath || '', 'node_modules'), // ASAR path for dependencies
             path.join((process as any).resourcesPath || '', 'app.asar.unpacked', 'node_modules'),
             path.join(
               (process as any).resourcesPath || '',
