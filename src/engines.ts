@@ -350,8 +350,19 @@ export class PrismaEngine {
       // Extract each Prisma file
       for (const file of prismaFiles) {
         try {
-          // Remove the leading slash and node_modules/ prefix for extraction
-          const relativePath = file.startsWith('/node_modules/') ? file.substring(1) : file
+          // Handle different file path formats
+          let relativePath: string
+          if (file.startsWith('/node_modules/')) {
+            // Remove the leading slash
+            relativePath = file.substring(1)
+          } else if (file.startsWith('node_modules/')) {
+            // Already has the correct format
+            relativePath = file
+          } else {
+            // Add node_modules prefix if missing
+            relativePath = `node_modules/${file}`
+          }
+          
           const targetPath = path.join(extractionBase, relativePath)
           const targetDir = path.dirname(targetPath)
 
@@ -365,8 +376,22 @@ export class PrismaEngine {
             continue
           }
 
-          // Extract the file
-          const fileData = asar.extractFile(asarLocation, file)
+          // Extract the file - try different path formats
+          let fileData: Buffer | null = null
+          const possiblePaths = [file, file.substring(1), file.replace(/^\//, '')]
+          
+          for (const tryPath of possiblePaths) {
+            try {
+              fileData = asar.extractFile(asarLocation, tryPath)
+              if (fileData && fileData.length > 0) {
+                break
+              }
+            } catch (pathError) {
+              // Try next path format
+              continue
+            }
+          }
+
           if (fileData && fileData.length > 0) {
             fs.writeFileSync(targetPath, fileData)
 
@@ -381,6 +406,8 @@ export class PrismaEngine {
             }
 
             console.log(`Extracted: ${file} -> ${targetPath}`)
+          } else {
+            console.warn(`No data extracted for: ${file}`)
           }
         } catch (error) {
           console.warn(`Failed to extract ${file}:`, error)

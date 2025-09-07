@@ -23,7 +23,7 @@ const getPrismaClient = (): PrismaClientProps => {
           path.join(resourcesPath, 'node_modules', '@prisma', 'client'),
           path.join(__dirname, '..', '..', '..', 'node_modules', '@prisma', 'client')
         ]
-        
+
         for (const clientPath of possiblePaths) {
           if (fs.existsSync(path.join(clientPath, 'index.js'))) {
             console.log(`Loading Prisma client from: ${clientPath}`)
@@ -35,7 +35,7 @@ const getPrismaClient = (): PrismaClientProps => {
           }
         }
       }
-      
+
       // Dynamically require the module
       PrismaClient = require('@prisma/client').PrismaClient
     } catch (error) {
