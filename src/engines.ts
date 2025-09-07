@@ -744,6 +744,23 @@ export class PrismaEngine {
       return unpackedPath
     }
 
+    // If the requested engine doesn't exist, try the ARM64 version (for universal builds)
+    if (fileName.includes('darwin') && !fileName.includes('arm64')) {
+      const arm64FileName = fileName.replace('darwin', 'darwin-arm64')
+      const arm64UnpackedPath = path.join(
+        this.environment.resourcesPath,
+        'app.asar.unpacked',
+        'node_modules',
+        '@prisma',
+        'engines',
+        arm64FileName
+      )
+      if (fs.existsSync(arm64UnpackedPath)) {
+        console.log(`Using ARM64 unpacked engine: ${arm64UnpackedPath}`)
+        return arm64UnpackedPath
+      }
+    }
+
     // Check if the file exists in the extracted location
     const extractedPath = path.join(
       this.environment.resourcesPath,
@@ -871,7 +888,9 @@ export class PrismaEngine {
     distro = '',
     sslVersion: string = ''
   ): { queryEngine: string; schemaEngine: string } => {
-    console.log(`🔍 getFileName called with: platform=${platform}, arch=${arch}, distro=${distro}, sslVersion=${sslVersion}`)
+    console.log(
+      `🔍 getFileName called with: platform=${platform}, arch=${arch}, distro=${distro}, sslVersion=${sslVersion}`
+    )
     const archName = arch === 'arm64' ? '-arm64' : ''
     console.log(`🔍 archName determined as: "${archName}"`)
     const engineFiles: TEngine = {
