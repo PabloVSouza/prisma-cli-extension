@@ -14,11 +14,35 @@ let PrismaClient: PrismaClientProps | null = null
 const getPrismaClient = (): PrismaClientProps => {
   if (!PrismaClient) {
     try {
+      // In ASAR environments, we need to handle module resolution differently
+      if (process.env.NODE_ENV === 'production' || __dirname.includes('asar')) {
+        // Try to find the Prisma client in unpacked locations
+        const resourcesPath = (process as any).resourcesPath || ''
+        const possiblePaths = [
+          path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', '@prisma', 'client'),
+          path.join(resourcesPath, 'node_modules', '@prisma', 'client'),
+          path.join(__dirname, '..', '..', '..', 'node_modules', '@prisma', 'client')
+        ]
+        
+        for (const clientPath of possiblePaths) {
+          if (fs.existsSync(path.join(clientPath, 'index.js'))) {
+            console.log(`Loading Prisma client from: ${clientPath}`)
+            // Add the path to module resolution
+            if (!require.main?.paths.includes(clientPath)) {
+              require.main?.paths.unshift(clientPath)
+            }
+            break
+          }
+        }
+      }
+      
       // Dynamically require the module
       PrismaClient = require('@prisma/client').PrismaClient
     } catch (error) {
       console.error('Failed to load Prisma client:', error)
-      console.error('This usually means the Prisma client was not generated or is not available in the ASAR archive')
+      console.error(
+        'This usually means the Prisma client was not generated or is not available in the ASAR archive'
+      )
       console.error('Please ensure Prisma client is generated during the build process')
       throw new Error(
         `@prisma/client is not available. This usually means the Prisma client was not generated or is not available in the ASAR archive. Please ensure Prisma client is generated during the build process. Error: ${error}`
@@ -45,7 +69,7 @@ export class PrismaInitializer extends PrismaMigration {
     await this.ensurePrismaClientGenerated()
 
     const PrismaClientClass = getPrismaClient()
-    
+
     const prismaConfig: Parameters<typeof PrismaClientClass>[0] = {
       datasources: {
         db: {
@@ -86,7 +110,7 @@ export class PrismaInitializer extends PrismaMigration {
 
       if (!fs.existsSync(fullPath)) {
         console.log('Database file does not exist, creating...')
-        
+
         // Create empty database file
         fs.closeSync(fs.openSync(fullPath, 'w'))
         console.log(`Database file created successfully at: ${fullPath}`)
@@ -171,7 +195,7 @@ export class PrismaInitializer extends PrismaMigration {
   private ensurePrismaClientGenerated = async (): Promise<void> => {
     try {
       console.log('Ensuring Prisma client is generated...')
-      
+
       // Check if the generated client exists in multiple possible locations
       const possibleClientPaths = [
         // Standard location
@@ -179,11 +203,17 @@ export class PrismaInitializer extends PrismaMigration {
         // Resources location
         path.join(this.environment.resourcesPath, 'node_modules', '@prisma', 'client'),
         // Unpacked location
-        path.join(this.environment.resourcesPath, 'app.asar.unpacked', 'node_modules', '@prisma', 'client'),
+        path.join(
+          this.environment.resourcesPath,
+          'app.asar.unpacked',
+          'node_modules',
+          '@prisma',
+          'client'
+        ),
         // Direct location
         path.join(this.environment.resourcesPath, 'node_modules', '@prisma', 'client')
       ]
-      
+
       let clientExists = false
       for (const clientPath of possibleClientPaths) {
         const defaultClientPath = path.join(clientPath, 'index.js')
@@ -193,17 +223,17 @@ export class PrismaInitializer extends PrismaMigration {
           break
         }
       }
-      
+
       if (clientExists) {
         console.log('✅ Prisma client already generated')
         return
       }
-      
+
       // If we're in an ASAR environment, try to extract the Prisma client
       if (this.isAsarEnvironment()) {
         console.log('ASAR environment detected, attempting to extract Prisma client...')
         await this.extractPrismaClientFromAsar()
-        
+
         // Check again after extraction
         for (const clientPath of possibleClientPaths) {
           const defaultClientPath = path.join(clientPath, 'index.js')
@@ -214,16 +244,16 @@ export class PrismaInitializer extends PrismaMigration {
           }
         }
       }
-      
+
       if (clientExists) {
         console.log('✅ Prisma client available')
         return
       }
-      
+
       console.log('Prisma client not found, but skipping generation to avoid binary target issues')
       console.log('The Prisma client should be generated during the build process')
       console.log('If you encounter issues, run: npx prisma generate')
-      
+
       // Don't try to generate the client here to avoid binary target issues
       // The client should be generated during the build process
     } catch (error) {
@@ -236,36 +266,37 @@ export class PrismaInitializer extends PrismaMigration {
   private extractPrismaClientFromAsar = async (): Promise<void> => {
     try {
       console.log('Extracting Prisma client from ASAR...')
-      
+
       const asarLocation = this.getAsarLocationForClient()
       if (!asarLocation) {
         console.log('No ASAR location found, skipping Prisma client extraction')
         return
       }
-      
+
       console.log(`Extracting from ASAR: ${asarLocation}`)
-      
+
       // List all files in the ASAR
       const allFiles = asar.listPackage(asarLocation, { isPack: false })
       console.log(`Found ${allFiles.length} files in ASAR`)
-      
+
       // Find all Prisma client files
       const prismaClientFiles = allFiles.filter(
         (file) =>
           file.includes('node_modules/@prisma/client') ||
-          file.includes('node_modules/.prisma/client')
+          file.includes('node_modules/.prisma/client') ||
+          file.includes('.prisma/client')
       )
-      
+
       console.log(`Found ${prismaClientFiles.length} Prisma client files to extract`)
-      
+
       // Determine the best extraction location
       const unpackedDir = path.join(this.environment.resourcesPath, 'app.asar.unpacked')
       const directDir = path.join(this.environment.resourcesPath, 'node_modules')
-      
+
       // Prefer app.asar.unpacked if it exists, otherwise use direct extraction
       const extractionBase = fs.existsSync(unpackedDir) ? unpackedDir : directDir
       console.log(`Using extraction base: ${extractionBase}`)
-      
+
       // Extract each Prisma client file
       for (const file of prismaClientFiles) {
         try {
@@ -273,17 +304,17 @@ export class PrismaInitializer extends PrismaMigration {
           const relativePath = file.startsWith('/node_modules/') ? file.substring(1) : file
           const targetPath = path.join(extractionBase, relativePath)
           const targetDir = path.dirname(targetPath)
-          
+
           // Create directory if it doesn't exist
           if (!fs.existsSync(targetDir)) {
             CreateDirectory(targetDir)
           }
-          
+
           // Skip if file already exists
           if (fs.existsSync(targetPath)) {
             continue
           }
-          
+
           // Extract the file
           const fileData = asar.extractFile(asarLocation, file)
           if (fileData && fileData.length > 0) {
@@ -294,7 +325,7 @@ export class PrismaInitializer extends PrismaMigration {
           console.warn(`Failed to extract ${file}:`, error)
         }
       }
-      
+
       // Verify @prisma/client was extracted
       const prismaClientPath = path.join(extractionBase, 'node_modules', '@prisma', 'client')
       if (fs.existsSync(prismaClientPath)) {
@@ -303,7 +334,7 @@ export class PrismaInitializer extends PrismaMigration {
         console.warn('⚠️ @prisma/client not found in extracted files')
         console.log(`Checked path: ${prismaClientPath}`)
       }
-      
+
       console.log('Prisma client extraction completed')
     } catch (error) {
       console.error('Error extracting Prisma client from ASAR:', error)
