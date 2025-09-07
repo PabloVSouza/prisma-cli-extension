@@ -1,6 +1,5 @@
 import { fork } from 'child_process'
 import fs from 'fs'
-import path from 'path'
 import { PrismaConstants } from './constants'
 import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 
@@ -25,7 +24,6 @@ interface PrismaCommandResult {
   stdout: string
   stderr: string
 }
-
 
 export class PrismaMigration extends PrismaConstants {
   public needsMigration: boolean
@@ -64,12 +62,12 @@ export class PrismaMigration extends PrismaConstants {
       console.log('Starting migration process...')
       console.log(`Schema path: ${this.schemaPath}`)
       console.log(`Database URL: ${this.dbUrl}`)
-      
+
       await this.runPrismaCommand({
         command: ['migrate', 'deploy', '--schema', this.schemaPath],
         dbUrl: this.dbUrl
       })
-      
+
       console.log('Migration completed successfully')
     } catch (error) {
       console.error('Migration failed:', error)
@@ -101,17 +99,24 @@ export class PrismaMigration extends PrismaConstants {
           ...process.env,
           DATABASE_URL: dbUrl,
           // For generate command, use minimal environment variables
-          ...(command.includes('generate') ? {
-            // Only set essential variables for generate
-            PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
-          } : {
-            // For other commands, set engine paths
-            PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
-            PRISMA_FMT_BINARY: this.qePath,
-            PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath,
-            PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
-            PRISMA_ENGINES_MIRROR: process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
-          })
+          ...(command.includes('generate')
+            ? {
+                // Only set essential variables for generate
+                PRISMA_ENGINES_MIRROR:
+                  process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh',
+                // Allow Prisma to download engines if needed
+                PRISMA_CLI_BINARY_TARGETS: this.getBinaryTargets().join(','),
+                PRISMA_BINARY_TARGETS: this.getBinaryTargets().join(',')
+              }
+            : {
+                // For other commands, set engine paths
+                PRISMA_SCHEMA_ENGINE_BINARY: this.sePath,
+                PRISMA_FMT_BINARY: this.qePath,
+                PRISMA_INTROSPECTION_ENGINE_BINARY: this.sePath,
+                PRISMA_QUERY_ENGINE_LIBRARY: this.qePath,
+                PRISMA_ENGINES_MIRROR:
+                  process.env.PRISMA_ENGINES_MIRROR || 'https://binaries.prisma.sh'
+              })
         }
 
         // Only set PRISMA_QUERY_ENGINE_LIBRARY for commands that need it (not for generate)
@@ -142,11 +147,11 @@ export class PrismaMigration extends PrismaConstants {
             stdout: stdout.trim(),
             stderr: stderr.trim()
           }
-          
+
           if (signal) {
             result.stderr += `\nProcess terminated by signal: ${signal}`
           }
-          
+
           resolve(result)
         })
 
@@ -164,16 +169,18 @@ export class PrismaMigration extends PrismaConstants {
       })
 
       if (result.exitCode !== 0) {
-        const errorMessage = `Prisma command "${command.join(' ')}" failed with exit code ${result.exitCode}`
+        const errorMessage = `Prisma command "${command.join(' ')}" failed with exit code ${
+          result.exitCode
+        }`
         const fullError = result.stderr ? `${errorMessage}. Stderr: ${result.stderr}` : errorMessage
-        
+
         console.error('Prisma command failed:', {
           command: command.join(' '),
           exitCode: result.exitCode,
           stdout: result.stdout,
           stderr: result.stderr
         })
-        
+
         throw new Error(fullError)
       }
 

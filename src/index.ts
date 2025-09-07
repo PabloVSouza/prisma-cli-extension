@@ -218,7 +218,13 @@ export class PrismaInitializer extends PrismaMigration {
       const possiblePrismaClientPaths = [
         path.join(this.environment.appPath, 'node_modules', '.prisma', 'client'),
         path.join(this.environment.resourcesPath, 'node_modules', '.prisma', 'client'),
-        path.join(this.environment.resourcesPath, 'app.asar.unpacked', 'node_modules', '.prisma', 'client'),
+        path.join(
+          this.environment.resourcesPath,
+          'app.asar.unpacked',
+          'node_modules',
+          '.prisma',
+          'client'
+        ),
         path.join(this.environment.resourcesPath, 'node_modules', '.prisma', 'client')
       ]
 
