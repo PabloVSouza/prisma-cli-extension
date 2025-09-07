@@ -729,29 +729,31 @@ export class PrismaEngine {
   }
 
   private getEnginePath = (enginePath: string, fileName: string): string => {
-    // First, check if the file exists in the extracted location
-    const extractedPath = path.join(
-      this.environment.resourcesPath,
-      'node_modules',
-      path.basename(enginePath),
-      fileName
-    )
-    if (fs.existsSync(extractedPath)) {
-      console.log(`Using extracted engine: ${extractedPath}`)
-      return extractedPath
-    }
-
-    // Check in app.asar.unpacked location
+    // First, check in app.asar.unpacked location (prioritize unpacked engines)
     const unpackedPath = path.join(
       this.environment.resourcesPath,
       'app.asar.unpacked',
       'node_modules',
-      path.basename(enginePath),
+      '@prisma',
+      'engines',
       fileName
     )
     if (fs.existsSync(unpackedPath)) {
       console.log(`Using unpacked engine: ${unpackedPath}`)
       return unpackedPath
+    }
+
+    // Check if the file exists in the extracted location
+    const extractedPath = path.join(
+      this.environment.resourcesPath,
+      'node_modules',
+      '@prisma',
+      'engines',
+      fileName
+    )
+    if (fs.existsSync(extractedPath)) {
+      console.log(`Using extracted engine: ${extractedPath}`)
+      return extractedPath
     }
 
     // If not extracted, try the original path
