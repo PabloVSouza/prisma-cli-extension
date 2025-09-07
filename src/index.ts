@@ -346,7 +346,7 @@ export class PrismaInitializer extends PrismaMigration {
             }
 
             copyRecursive(prismaClientPath, dotPrismaClientPath)
-            
+
             // Fix the default.js file to point to the correct location
             const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
             if (fs.existsSync(defaultJsPath)) {
@@ -357,7 +357,7 @@ export class PrismaInitializer extends PrismaMigration {
               console.log(`✅ Fixed default.js to point to @prisma/client`)
               logToFile(`✅ Fixed default.js to point to @prisma/client`)
             }
-            
+
             console.log(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
             logToFile(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
           }
@@ -481,10 +481,40 @@ export class PrismaInitializer extends PrismaMigration {
   }
 
   private getAsarLocationForClient = (): string | null => {
+    // First try to find ASAR in the prismaPath
     const asarIndex = this.prismaPath.indexOf('asar')
-    if (asarIndex === -1) return null
-
-    return path.join(this.prismaPath.substring(0, asarIndex + 4))
+    if (asarIndex !== -1) {
+      return path.join(this.prismaPath.substring(0, asarIndex + 4))
+    }
+    
+    // If not found in prismaPath, try to construct from resourcesPath
+    const resourcesPath = (process as any).resourcesPath || ''
+    if (resourcesPath) {
+      const asarPath = path.join(resourcesPath, 'app.asar')
+      if (fs.existsSync(asarPath)) {
+        console.log(`Found ASAR at: ${asarPath}`)
+        logToFile(`Found ASAR at: ${asarPath}`)
+        return asarPath
+      }
+    }
+    
+    // Try common ASAR locations
+    const commonPaths = [
+      '/Applications/Comic Universe.app/Contents/Resources/app.asar',
+      path.join(process.cwd(), 'app.asar')
+    ]
+    
+    for (const asarPath of commonPaths) {
+      if (fs.existsSync(asarPath)) {
+        console.log(`Found ASAR at: ${asarPath}`)
+        logToFile(`Found ASAR at: ${asarPath}`)
+        return asarPath
+      }
+    }
+    
+    console.log('Could not find ASAR file')
+    logToFile('Could not find ASAR file')
+    return null
   }
 
   // Removed unused normalizeDbPath helper.
