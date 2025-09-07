@@ -318,24 +318,24 @@ export class PrismaInitializer extends PrismaMigration {
           const unpackedNodeModules = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules')
           const prismaClientPath = path.join(unpackedNodeModules, '@prisma', 'client')
           const dotPrismaClientPath = path.join(unpackedNodeModules, '.prisma', 'client')
-          
+
           // Create .prisma directory if it doesn't exist
           const dotPrismaPath = path.join(unpackedNodeModules, '.prisma')
           if (!fs.existsSync(dotPrismaPath)) {
             fs.mkdirSync(dotPrismaPath, { recursive: true })
           }
-          
+
           // Copy files from @prisma/client to .prisma/client
           if (!fs.existsSync(dotPrismaClientPath)) {
             fs.mkdirSync(dotPrismaClientPath, { recursive: true })
-            
+
             // Copy all files from @prisma/client to .prisma/client
             const copyRecursive = (src: string, dest: string) => {
               const entries = fs.readdirSync(src, { withFileTypes: true })
               for (const entry of entries) {
                 const srcPath = path.join(src, entry.name)
                 const destPath = path.join(dest, entry.name)
-                
+
                 if (entry.isDirectory()) {
                   fs.mkdirSync(destPath, { recursive: true })
                   copyRecursive(srcPath, destPath)
@@ -344,18 +344,30 @@ export class PrismaInitializer extends PrismaMigration {
                 }
               }
             }
-            
+
             copyRecursive(prismaClientPath, dotPrismaClientPath)
+            
+            // Fix the default.js file to point to the correct location
+            const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
+            if (fs.existsSync(defaultJsPath)) {
+              const defaultJsContent = `module.exports = {
+  ...require('@prisma/client/default'),
+}`
+              fs.writeFileSync(defaultJsPath, defaultJsContent)
+              console.log(`✅ Fixed default.js to point to @prisma/client`)
+              logToFile(`✅ Fixed default.js to point to @prisma/client`)
+            }
+            
             console.log(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
             logToFile(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
           }
-          
+
           // Verify the copy works by checking if default.js is accessible
           const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
           if (fs.existsSync(defaultJsPath)) {
             console.log(`✅ Copy verified: ${defaultJsPath} is accessible`)
             logToFile(`✅ Copy verified: ${defaultJsPath} is accessible`)
-            
+
             // Add .prisma/client to module resolution paths
             if (require.main?.paths && !require.main.paths.includes(dotPrismaClientPath)) {
               require.main.paths.unshift(dotPrismaClientPath)
