@@ -295,9 +295,9 @@ export class PrismaInitializer extends PrismaMigration {
         }
       }
 
-      // Create .prisma/client directory with symlinks to @prisma/client for compatibility
+      // Create .prisma/client directory with copied files from @prisma/client for cross-platform compatibility
       if (clientExists && !prismaClientExists) {
-        console.log('⚠️ .prisma/client directory missing, creating symlinks to @prisma/client')
+        console.log('⚠️ .prisma/client directory missing, copying files from @prisma/client')
         try {
           const resourcesPath = (process as any).resourcesPath || ''
           const unpackedNodeModules = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules')
@@ -310,22 +310,40 @@ export class PrismaInitializer extends PrismaMigration {
             fs.mkdirSync(dotPrismaPath, { recursive: true })
           }
           
-          // Create symlink from .prisma/client to @prisma/client
+          // Copy files from @prisma/client to .prisma/client
           if (!fs.existsSync(dotPrismaClientPath)) {
-            fs.symlinkSync(prismaClientPath, dotPrismaClientPath, 'dir')
-            console.log(`✅ Created symlink: ${dotPrismaClientPath} -> ${prismaClientPath}`)
+            fs.mkdirSync(dotPrismaClientPath, { recursive: true })
+            
+            // Copy all files from @prisma/client to .prisma/client
+            const copyRecursive = (src: string, dest: string) => {
+              const entries = fs.readdirSync(src, { withFileTypes: true })
+              for (const entry of entries) {
+                const srcPath = path.join(src, entry.name)
+                const destPath = path.join(dest, entry.name)
+                
+                if (entry.isDirectory()) {
+                  fs.mkdirSync(destPath, { recursive: true })
+                  copyRecursive(srcPath, destPath)
+                } else {
+                  fs.copyFileSync(srcPath, destPath)
+                }
+              }
+            }
+            
+            copyRecursive(prismaClientPath, dotPrismaClientPath)
+            console.log(`✅ Copied @prisma/client files to: ${dotPrismaClientPath}`)
           }
           
-          // Verify the symlink works by checking if default.js is accessible
+          // Verify the copy works by checking if default.js is accessible
           const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
           if (fs.existsSync(defaultJsPath)) {
-            console.log(`✅ Symlink verified: ${defaultJsPath} is accessible`)
+            console.log(`✅ Copy verified: ${defaultJsPath} is accessible`)
           } else {
-            console.log(`⚠️ Symlink created but default.js not accessible at: ${defaultJsPath}`)
+            console.log(`⚠️ Copy created but default.js not accessible at: ${defaultJsPath}`)
           }
         } catch (error) {
-          console.error('Failed to create .prisma/client symlink:', error)
-          console.log('Continuing without .prisma/client symlink...')
+          console.error('Failed to copy @prisma/client files:', error)
+          console.log('Continuing without .prisma/client copy...')
         }
       }
 
