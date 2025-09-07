@@ -53,13 +53,9 @@ const ensureUnpackedExtensionPriority = (): void => {
 // Call this immediately when the module loads
 ensureUnpackedExtensionPriority()
 
-// Detect if we're running from inside ASAR and throw an error to force loading from unpacked location
-if (__dirname.includes('app.asar') && !__dirname.includes('app.asar.unpacked')) {
-  console.error('❌ Extension is running from inside ASAR! This will cause issues.')
-  console.error('The extension should be loaded from the unpacked location.')
-  console.error('Current path:', __dirname)
-  throw new Error('Extension must be loaded from unpacked location, not from inside ASAR')
-}
+// Log where the extension is running from for debugging
+console.log(`🔍 Extension running from: ${__dirname}`)
+logToFile(`🔍 Extension running from: ${__dirname}`)
 
 const getPrismaClient = (): PrismaClientProps => {
   if (!PrismaClient) {
