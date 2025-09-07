@@ -1,5 +1,6 @@
 import { fork } from 'child_process'
 import fs from 'fs'
+import path from 'path'
 import { PrismaConstants } from './constants'
 import type { PrismaClient as PrismaClientProps } from '@prisma/client'
 
@@ -98,6 +99,13 @@ export class PrismaMigration extends PrismaConstants {
         const env: Record<string, string> = {
           ...process.env,
           DATABASE_URL: dbUrl,
+          // Add unpacked paths to NODE_PATH for module resolution
+          NODE_PATH: [
+            process.env.NODE_PATH,
+            path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules'),
+            path.join(process.resourcesPath || '', 'app.asar.unpacked', 'node_modules', '@prisma', 'engines'),
+            path.join(process.resourcesPath || '', 'app.asar.unpacked', 'prisma', 'client')
+          ].filter(Boolean).join(':'),
           // For generate command, use minimal environment variables
           ...(command.includes('generate')
             ? {

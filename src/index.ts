@@ -98,11 +98,11 @@ const getPrismaClient = (): PrismaClientProps => {
       )
       console.log(`🔍 Checking unpacked @prisma/client at: ${unpackedClientPath}`)
       logToFile(`🔍 Checking unpacked @prisma/client at: ${unpackedClientPath}`)
-      
+
       if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
         console.log(`✅ Unpacked @prisma/client exists`)
         logToFile(`✅ Unpacked @prisma/client exists`)
-        
+
         if (!require.main?.paths.includes(unpackedClientPath)) {
           require.main?.paths.unshift(unpackedClientPath)
           console.log(
@@ -134,12 +134,20 @@ const getPrismaClient = (): PrismaClientProps => {
           'client'
         )
         if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
-          console.log(`✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`)
-          logToFile(`✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`)
+          console.log(
+            `✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`
+          )
+          logToFile(
+            `✅ Directly requiring Prisma client from unpacked location: ${unpackedClientPath}`
+          )
           PrismaClient = require(unpackedClientPath).PrismaClient
         } else {
-          console.log(`⚠️ Custom and unpacked @prisma/client not found, falling back to standard require`)
-          logToFile(`⚠️ Custom and unpacked @prisma/client not found, falling back to standard require`)
+          console.log(
+            `⚠️ Custom and unpacked @prisma/client not found, falling back to standard require`
+          )
+          logToFile(
+            `⚠️ Custom and unpacked @prisma/client not found, falling back to standard require`
+          )
           PrismaClient = require('@prisma/client').PrismaClient
         }
       }
