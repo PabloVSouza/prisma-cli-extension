@@ -225,14 +225,6 @@ export class PrismaEngine {
               this.environment.resourcesPath,
               'app.asar.unpacked',
               'node_modules',
-              'prisma',
-              'build',
-              'index.js'
-            ),
-            path.join(
-              this.environment.resourcesPath,
-              'app.asar.unpacked',
-              'node_modules',
               '.bin',
               'prisma'
             ),
