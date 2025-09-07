@@ -593,17 +593,28 @@ export class PrismaEngine {
 
   private getExpectedEngineFiles = (): string[] => {
     const engines = []
+    const arch = process.arch
 
-    // Add platform-specific engines
+    // Add platform-specific engines with architecture
     if (this.platform.includes('darwin')) {
-      engines.push('schema-engine-darwin')
-      engines.push('query-engine-darwin.dylib')
+      if (arch === 'arm64') {
+        engines.push('schema-engine-darwin-arm64')
+        engines.push('libquery_engine-darwin-arm64.dylib.node')
+      } else {
+        engines.push('schema-engine-darwin')
+        engines.push('libquery_engine-darwin.dylib.node')
+      }
     } else if (this.platform.includes('linux')) {
-      engines.push('schema-engine-linux-glibc-libssl3')
-      engines.push('query-engine-linux-glibc-libssl3.so.node')
+      if (arch === 'arm64') {
+        engines.push('schema-engine-linux-arm64')
+        engines.push('libquery_engine-linux-arm64.so.node')
+      } else {
+        engines.push('schema-engine-linux-glibc-libssl3')
+        engines.push('libquery_engine-linux-glibc-libssl3.so.node')
+      }
     } else if (this.platform.includes('windows')) {
       engines.push('schema-engine-windows.exe')
-      engines.push('query-engine-windows.dll.node')
+      engines.push('query_engine-windows.dll.node')
     }
 
     // Add common engines
