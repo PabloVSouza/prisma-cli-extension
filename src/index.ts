@@ -338,6 +338,12 @@ export class PrismaInitializer extends PrismaMigration {
           const defaultJsPath = path.join(dotPrismaClientPath, 'default.js')
           if (fs.existsSync(defaultJsPath)) {
             console.log(`✅ Copy verified: ${defaultJsPath} is accessible`)
+            
+            // Add .prisma/client to module resolution paths
+            if (require.main?.paths && !require.main.paths.includes(dotPrismaClientPath)) {
+              require.main.paths.unshift(dotPrismaClientPath)
+              console.log(`✅ Added .prisma/client to module resolution: ${dotPrismaClientPath}`)
+            }
           } else {
             console.log(`⚠️ Copy created but default.js not accessible at: ${defaultJsPath}`)
           }
