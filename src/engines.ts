@@ -714,6 +714,7 @@ export class PrismaEngine {
   private getPlatformData = (): void => {
     this.platform = process.platform
     const arch = process.arch
+    console.log(`🔍 getPlatformData: platform=${this.platform}, arch=${arch}`)
     const distro = this.platform === 'linux' ? this.getDistro() : undefined
     const fileName = this.getFileName(this.platform, arch, distro?.prismaName, distro?.ssl)
     this.sePath = this.getEnginePath(
@@ -870,7 +871,9 @@ export class PrismaEngine {
     distro = '',
     sslVersion: string = ''
   ): { queryEngine: string; schemaEngine: string } => {
+    console.log(`🔍 getFileName called with: platform=${platform}, arch=${arch}, distro=${distro}, sslVersion=${sslVersion}`)
     const archName = arch === 'arm64' ? '-arm64' : ''
+    console.log(`🔍 archName determined as: "${archName}"`)
     const engineFiles: TEngine = {
       win32: {
         queryEngine: 'query_engine-windows.dll.node',
