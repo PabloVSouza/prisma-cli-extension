@@ -73,6 +73,7 @@ const getPrismaClient = (): PrismaClientProps => {
         for (const clientPath of possiblePaths) {
           if (fs.existsSync(path.join(clientPath, 'index.js'))) {
             console.log(`Loading Prisma client from: ${clientPath}`)
+            logToFile(`Loading Prisma client from: ${clientPath}`)
             // Add the path to module resolution
             if (!require.main?.paths.includes(clientPath)) {
               require.main?.paths.unshift(clientPath)
@@ -82,8 +83,19 @@ const getPrismaClient = (): PrismaClientProps => {
         }
       }
 
-      // Dynamically require the module
-      PrismaClient = require('@prisma/client').PrismaClient
+      // Dynamically require the module from the unpacked location
+      const resourcesPath = (process as any).resourcesPath || ''
+      const unpackedClientPath = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules', '@prisma', 'client')
+      
+      if (fs.existsSync(path.join(unpackedClientPath, 'index.js'))) {
+        console.log(`✅ Loading Prisma client from unpacked location: ${unpackedClientPath}`)
+        logToFile(`✅ Loading Prisma client from unpacked location: ${unpackedClientPath}`)
+        PrismaClient = require(unpackedClientPath).PrismaClient
+      } else {
+        console.log(`⚠️ Unpacked Prisma client not found, falling back to standard require`)
+        logToFile(`⚠️ Unpacked Prisma client not found, falling back to standard require`)
+        PrismaClient = require('@prisma/client').PrismaClient
+      }
     } catch (error) {
       console.error('Failed to load Prisma client:', error)
       console.error(
