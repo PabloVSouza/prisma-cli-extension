@@ -55,12 +55,26 @@ const getPrismaClient = (): PrismaClientProps => {
 export class PrismaInitializer extends PrismaMigration {
   public prisma: PrismaClientProps
 
+  private addUnpackedToModuleResolution = (): void => {
+    // Add unpacked node_modules to module resolution path
+    const resourcesPath = (process as any).resourcesPath || ''
+    const unpackedNodeModules = path.join(resourcesPath, 'app.asar.unpacked', 'node_modules')
+    
+    if (fs.existsSync(unpackedNodeModules)) {
+      // Add to module resolution paths if not already present
+      if (require.main?.paths && !require.main.paths.includes(unpackedNodeModules)) {
+        require.main.paths.unshift(unpackedNodeModules)
+        console.log(`Added unpacked node_modules to module resolution: ${unpackedNodeModules}`)
+      }
+    }
+  }
+
   public initializePrisma = async () => {
     // Ensure ASAR extraction happens first
     if (this.isAsarEnvironment()) {
       console.log('ASAR environment detected, ensuring Prisma files are extracted...')
       this.handleAsarExtraction()
-      this.ensureModuleResolution()
+      this.addUnpackedToModuleResolution()
     }
 
     if (this.dbUrl.startsWith('file')) await this.prepareDb()
